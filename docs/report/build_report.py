@@ -376,7 +376,7 @@ def consistency_html() -> str:
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
                         ("consistency.json", "Batch 4")):
         c = load(ROOT / "output" / fname)
-        if not c or (rows and c.get("runs") == rows[-1][2]):
+        if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue
         rng = c.get("class_weight_range_pts", {})
         dec = sorted(set((c.get("decisions") or {}).values()))
