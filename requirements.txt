@@ -1,0 +1,10 @@
+# Python 3.10 or newer. Install: pip install -r requirements.txt
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+pydantic>=2.5
+pydantic-ai-slim>=1.0  # agent loop (lecture 4)
+PyYAML>=6.0
+openai>=1.66  # Responses API
+fastapi>=0.110
+uvicorn>=0.29

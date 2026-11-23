@@ -1,0 +1,23 @@
+# Render blueprint (lecture 8: push to GitHub, connect the repo, Render runs it).
+# Render dashboard > New > Blueprint > pick this repo. Then set the two secret values when Render asks for them.
+# The React front end is prebuilt in frontend/dist, so the build is Python only.
+services:
+  - type: web
+    name: acio
+    runtime: python
+    plan: starter            # about $7/month, always on. "free" also works but sleeps when idle (about a minute to wake).
+    buildCommand: pip install -r requirements.txt
+    # One process on purpose: committee jobs are held in memory by the server while they run.
+    startCommand: uvicorn app.server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: OPENAI_API_KEY      # or PORTKEY_API_KEY for the course gateway. Never put the value in git.
+        sync: false
+      - key: AII_ACCESS_CODE     # required on a public URL: without it anyone with the link spends your token budget
+        sync: false
+      - key: AII_MAX_CONCURRENT_RUNS
+        value: "1"
+      - key: AII_COST_CAP_USD    # per-run cost cap (the run escalates if it is reached)
+        value: "1.00"

@@ -1,0 +1,62 @@
+# Access policy: who may read what. Enforced in CODE by access/gateway.py. The LLM never sees a connection string,
+# a file path or raw SQL; it can only call the named tools below. Default deny.
+version: 1
+data_tiers:
+  T0: "Public / reference market data (benchmarks, factors, universe, guardrails; CMAs in a separate cma.db). market.db + cma.db"
+  T1: "Pseudonymized manager data. One physical database per asset class. db/mgr_*.db"
+  T2: "Owner-confidential (policy fields, liabilities, holdings). Held in the run object by the app; never stored in any DB here; not given to heads except the fields they need."
+  T3: "Secrets: identity vault (opaque id -> source label), API keys. secure/vault.db and .env. NO agent has any tool that can reach T3."
+principles:
+  - "Least privilege: each head opens only its own asset-class database (information barrier); a head cannot even name another class's database."
+  - "Read-only connections (SQLite mode=ro + PRAGMA query_only). The only writes are append-only rows to audit.db (query_log, proposal_log) by the gateway itself."
+  - "No free-form SQL. Every tool is a fixed, parameterised query; arguments are validated against patterns and enums."
+  - "Independence: heads do not see each other's proposals. Red Team sees structured proposals and tool outputs, not authors' reasoning. ACIO sees everything but raw data only through tools."
+  - "Untrusted text: manager descriptions are returned wrapped as data with an injection scan result; agents never receive them as instructions."
+  - "Budgets: per-agent call budgets, row caps, text length caps. Every call is logged (agent, tool, args, rows, status)."
+agents:
+  acio:
+    classes: [US_EQ, INTL_EQ, US_IG, US_HY]
+    tools: [get_investable_universe, get_manager_card, get_strategy_text, get_data_quality, get_asset_class_stats, get_asset_class_corr, get_episode_returns, get_cma, read_proposals, publish_proposal, evaluate_allocation, stress_test, evaluate_manager_mix]
+    can_read_returns: false
+    max_calls: 40
+  aar:                      # Head of Asset Allocation and Risk Management
+    classes: []             # no manager-level data at all: allocation is done at asset-class level
+    tools: [get_investable_universe, get_asset_class_stats, get_asset_class_corr, get_episode_returns, get_benchmark_returns, get_cma, evaluate_allocation, publish_proposal]
+    can_read_returns: false
+    max_calls: 30
+  head_us_eq:
+    classes: [US_EQ]
+    tools: [get_class_scope, list_managers, get_manager_card, get_strategy_text, get_manager_stats, get_returns, get_excess_corr, get_peer_stats, get_benchmark_returns, get_factors, get_factor_loadings, get_data_quality, evaluate_manager_mix, deflated_sharpe, publish_proposal]
+    can_read_returns: true
+    max_calls: 60
+  head_intl_eq:
+    classes: [INTL_EQ]
+    tools: [get_class_scope, list_managers, get_manager_card, get_strategy_text, get_manager_stats, get_returns, get_excess_corr, get_peer_stats, get_benchmark_returns, get_factors, get_factor_loadings, get_data_quality, evaluate_manager_mix, deflated_sharpe, publish_proposal]
+    can_read_returns: true
+    max_calls: 60
+  head_us_ig:
+    classes: [US_IG]
+    tools: [get_class_scope, list_managers, get_manager_card, get_strategy_text, get_manager_stats, get_returns, get_excess_corr, get_peer_stats, get_benchmark_returns, get_factors, get_factor_loadings, get_data_quality, evaluate_manager_mix, deflated_sharpe, publish_proposal]
+    can_read_returns: true
+    max_calls: 60
+  head_us_hy:
+    classes: [US_HY]
+    tools: [get_class_scope, list_managers, get_manager_card, get_strategy_text, get_manager_stats, get_returns, get_excess_corr, get_peer_stats, get_benchmark_returns, get_factors, get_factor_loadings, get_data_quality, evaluate_manager_mix, deflated_sharpe, publish_proposal]
+    can_read_returns: true
+    max_calls: 60
+  red_team:
+    classes: [US_EQ, INTL_EQ, US_IG, US_HY]
+    tools: [get_investable_universe, list_managers, get_manager_card, get_strategy_text, get_manager_stats, get_returns, get_excess_corr, get_peer_stats, get_benchmark_returns, get_factors, get_factor_loadings, get_data_quality, get_asset_class_stats, get_asset_class_corr, get_episode_returns, get_cma, read_proposals, evaluate_manager_mix, deflated_sharpe, evaluate_allocation, stress_test]
+    can_read_returns: true
+    max_calls: 90            # raised from 60: a live run exhausted 60 across four classes
+    never: [publish_proposal]
+limits:
+  max_rows_returns: 600
+  default_rows_returns: 120
+  max_text_chars: 6000
+factor_sets:
+  head_us_eq: EQUITY
+  head_intl_eq: EQUITY
+  head_us_ig: FIXED_INCOME
+  head_us_hy: FIXED_INCOME
+  red_team: [EQUITY, FIXED_INCOME]

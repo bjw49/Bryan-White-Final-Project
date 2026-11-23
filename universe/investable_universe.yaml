@@ -1,0 +1,119 @@
+# Investable universe + owner-type guardrails. SINGLE SOURCE OF TRUTH.
+# Loaded into market.db by build/build_databases.py and exposed to agents ONLY through the tool
+# get_investable_universe(owner_type). Code (not the LLM) validates every allocation against `status: AVAILABLE`.
+# Anything marked [design] is our own judgement, not literature, and must be labelled that way in the memo.
+
+version: 1
+as_of: "2026-11-18"
+
+asset_classes:
+  US_EQ:
+    name: "US Equity"
+    group: EQUITY
+    status: AVAILABLE
+    managed_by: "Head of US Equities"
+    benchmark_series: US_EQ
+    manager_universe: "10 candidate managers (UE01-UE10)"
+    coverage_note: "US large-cap focus in the manager set (core, growth, value, quantitative). No small/mid-cap specialists."
+  INTL_EQ:
+    name: "International Equity"
+    group: EQUITY
+    status: AVAILABLE
+    managed_by: "Head of International Equities"
+    benchmark_series: INTL_EQ
+    manager_universe: "10 candidate managers (IE01-IE10)"
+    coverage_note: "Developed ex-US only in the manager set. Emerging markets are NOT covered. Returns are USD. Whether currency exposure is hedged is not stated."
+  US_IG:
+    name: "US Investment Grade Fixed Income"
+    group: FIXED_INCOME
+    status: AVAILABLE
+    managed_by: "Head of US IG Fixed Income"
+    benchmark_series: US_IG_CORP
+    manager_universe: "10 candidate managers (IG01-IG10)"
+    coverage_note: "Benchmark is a US IG CORPORATE index, not the Aggregate: no Treasury, agency MBS or municipal exposure. Duration is intermediate-to-index; long-duration liability matching is NOT possible with this sleeve alone."
+  US_HY:
+    name: "US High Yield Fixed Income"
+    group: FIXED_INCOME
+    status: AVAILABLE
+    managed_by: "Head of US High Yield Fixed Income"
+    benchmark_series: US_HY
+    manager_universe: "10 candidate managers (HY01-HY10); two have under 36 months (all remain open to the agents)"
+    coverage_note: "Credit-risk sleeve. Behaves like equity in drawdowns; do not count it as a diversifier of equity risk without the stress tool."
+  CASH:
+    name: "Cash"
+    group: CASH
+    status: AVAILABLE
+    managed_by: "none (plain sleeve, no managers)"
+    benchmark_series: null
+    coverage_note: "No historical cash return series in the database. Use the CMA cash rows for expected return; treat volatility as approximately zero [design]."
+
+not_available:
+  # The ACIO and Head of Asset Allocation MUST NOT allocate to anything in this list.
+  # They may mention these only in the 'future improvements / not modelled' part of the memo.
+  - {id: PRIVATE_EQUITY,   name: "Private equity / buyouts",        reason: "No agent, no manager data, no benchmark, no valuation/liquidity model."}
+  - {id: VENTURE_CAPITAL,  name: "Venture capital",                 reason: "Same as private equity."}
+  - {id: PRIVATE_CREDIT,   name: "Private credit / direct lending", reason: "No manager data or benchmark; CMA rows exist but are out of scope."}
+  - {id: REAL_ESTATE,      name: "Real estate / REITs",             reason: "Dropped from scope by the owner of the project."}
+  - {id: INFRASTRUCTURE,   name: "Infrastructure",                  reason: "No data."}
+  - {id: NATURAL_RESOURCES,name: "Natural resources / commodities", reason: "No data."}
+  - {id: HEDGE_FUNDS,      name: "Hedge funds / liquid alternatives", reason: "Removed from scope: no benchmark, proprietary data."}
+  - {id: EM_EQUITY,        name: "Emerging-market equity",          reason: "No manager or benchmark data."}
+  - {id: EM_DEBT,          name: "Emerging-market debt",            reason: "No data."}
+  - {id: TREASURIES,       name: "US Treasuries / TIPS / STRIPS",   reason: "No data; this is the main reason full LDI hedging cannot be modelled."}
+  - {id: SECURITIZED,      name: "Agency/non-agency MBS, ABS, CLO", reason: "No data."}
+  - {id: MUNICIPALS,       name: "Municipal bonds",                 reason: "No data."}
+  - {id: GLOBAL_FI,        name: "Global / non-USD fixed income",   reason: "No data."}
+  - {id: DERIVATIVES,      name: "Derivative overlays, leverage, short selling", reason: "No tools; no agent may recommend them."}
+
+# Guardrails by owner type. min/max are decimals of total portfolio per asset class.
+# [design] defaults that bound the Head of Asset Allocation's search. An explicit statement in the owner's description
+# or an instruction from the human CIO overrides a default, and the memo must say so. Ranges are NOT recommendations.
+owner_types:
+  endowment:
+    label: "University / institutional endowment"
+    typical_objective: "Real return >= spending rate + inflation, perpetual horizon"
+    available_classes: [US_EQ, INTL_EQ, US_IG, US_HY, CASH]
+    guardrails: {US_EQ: [0.10, 0.60], INTL_EQ: [0.05, 0.40], US_IG: [0.00, 0.30], US_HY: [0.00, 0.15], CASH: [0.00, 0.05]}
+    unavailable_but_typical: [PRIVATE_EQUITY, VENTURE_CAPITAL, HEDGE_FUNDS, REAL_ESTATE, NATURAL_RESOURCES, PRIVATE_CREDIT]
+    must_disclose: "Real endowments hold large illiquid and alternative allocations that this tool cannot model. Say that the liquid-only result is not a replica of an endowment-model portfolio, and that expected return and risk comparisons to such portfolios are not like-for-like."
+    liquidity_note: "Spending rule needs cash flow; all five available classes are daily-liquid, so liquidity is not binding."
+  foundation:
+    label: "Private or community foundation"
+    typical_objective: "5% payout + inflation, perpetual horizon"
+    available_classes: [US_EQ, INTL_EQ, US_IG, US_HY, CASH]
+    guardrails: {US_EQ: [0.10, 0.60], INTL_EQ: [0.05, 0.35], US_IG: [0.05, 0.40], US_HY: [0.00, 0.15], CASH: [0.00, 0.10]}
+    unavailable_but_typical: [PRIVATE_EQUITY, HEDGE_FUNDS, REAL_ESTATE, PRIVATE_CREDIT]
+    must_disclose: "Mission-related or ESG constraints are not modelled."
+    liquidity_note: "Mandatory payout; cash sleeve funds one to two years of payout is a common rule of thumb [design]."
+  corporate_db_pension:
+    label: "Corporate defined-benefit pension plan"
+    typical_objective: "Fund the liability at acceptable funded-status volatility; often glide-path de-risking"
+    available_classes: [US_EQ, INTL_EQ, US_IG, US_HY, CASH]
+    guardrails: {US_EQ: [0.00, 0.40], INTL_EQ: [0.00, 0.25], US_IG: [0.10, 0.90], US_HY: [0.00, 0.20], CASH: [0.00, 0.10]}
+    unavailable_but_typical: [TREASURIES, PRIVATE_CREDIT, PRIVATE_EQUITY, HEDGE_FUNDS, REAL_ESTATE, DERIVATIVES]
+    must_disclose: "Liability hedging normally uses long-duration Treasuries/IG credit and derivatives. This universe has intermediate IG corporates only, so a full hedge cannot be built; any funded-status or hedge-ratio statement is partial. Liability duration and funded status must come from the owner; never default them."
+    liquidity_note: "Benefit payments require liquid assets; all available classes qualify."
+  public_db_pension:
+    label: "Public / multi-employer defined-benefit pension plan"
+    typical_objective: "Earn the actuarial assumed return over a long horizon"
+    available_classes: [US_EQ, INTL_EQ, US_IG, US_HY, CASH]
+    guardrails: {US_EQ: [0.10, 0.55], INTL_EQ: [0.05, 0.35], US_IG: [0.05, 0.50], US_HY: [0.00, 0.20], CASH: [0.00, 0.10]}
+    unavailable_but_typical: [PRIVATE_EQUITY, REAL_ESTATE, HEDGE_FUNDS, PRIVATE_CREDIT, INFRASTRUCTURE]
+    must_disclose: "Public plans discount liabilities at the assumed return, so LDI logic generally does not apply (confirm with the owner). The assumed return may not be reachable with liquid classes only; say so using the CMA output, do not stretch the allocation to hit it."
+    liquidity_note: "Negative cash flow from benefit payments is common; keep a cash sleeve."
+  life_insurer:
+    label: "Life insurance general account"
+    typical_objective: "Spread income subject to risk-based capital, ALM against liabilities"
+    available_classes: [US_IG, US_HY, US_EQ, CASH]
+    guardrails: {US_EQ: [0.00, 0.10], INTL_EQ: [0.00, 0.00], US_IG: [0.60, 1.00], US_HY: [0.00, 0.10], CASH: [0.00, 0.10]}
+    unavailable_but_typical: [PRIVATE_CREDIT, SECURITIZED, MUNICIPALS, TREASURIES, REAL_ESTATE]
+    must_disclose: "THIN EVIDENCE BASE. Capital charges (NAIC RBC C-1) and statutory accounting are not modelled by any agent; HY and equity attract heavy capital charges. The Head of US IG Fixed Income must output 'not evaluated: charge-adjusted spread not built' for insurer-specific questions."
+    liquidity_note: "Surrender and claims liquidity not modelled."
+  other:
+    label: "Other / unclear owner type"
+    typical_objective: "Unknown: the ACIO must infer from the description and label every inference"
+    available_classes: [US_EQ, INTL_EQ, US_IG, US_HY, CASH]
+    guardrails: {US_EQ: [0.00, 0.70], INTL_EQ: [0.00, 0.40], US_IG: [0.00, 0.90], US_HY: [0.00, 0.20], CASH: [0.00, 0.20]}
+    unavailable_but_typical: []
+    must_disclose: "Owner type was not clear; guardrails are generic."
+    liquidity_note: "Unknown."

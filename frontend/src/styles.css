@@ -1,0 +1,130 @@
+
+ :root{--bg:#05090f;--panel:#0a1420;--line:rgba(25,230,255,.22);--cy:#19e6ff;--cy2:#0a8fb3;--amb:#ffb000;--tx:#d9e6f2;--mute:#7d93a8;--red:#ff4d6d;--grn:#3dffb4}
+ *{box-sizing:border-box}
+ html{background:#05090f}
+ body{margin:0;font:17px/1.55 "Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--tx);min-height:100vh;
+   background:radial-gradient(ellipse at 50% -10%,#0d2236 0%,#05090f 60%) fixed}
+ header{background:rgba(5,9,15,.85);border-bottom:1px solid var(--line);padding:14px 22px;box-shadow:0 0 22px rgba(25,230,255,.08)}
+ header h1{margin:0;font:700 18px "Segoe UI",sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--cy);text-shadow:0 0 12px rgba(25,230,255,.55)}
+ header p{margin:3px 0 0;color:var(--mute);font-size:13px}
+ main{max-width:none;margin:0;padding:18px 2.5vw}
+ .msg{position:relative;max-width:92%;padding:12px 16px;margin:10px 0;white-space:pre-wrap;background:linear-gradient(180deg,rgba(10,20,32,.95),rgba(6,12,20,.95));border:1px solid var(--line)}
+ .msg::before{content:"";position:absolute;top:-1px;left:-1px;width:10px;height:10px;border:2px solid var(--cy);border-right:0;border-bottom:0}
+ .me{margin-left:auto;border-color:rgba(255,176,0,.45)}
+ .me::before{border-color:var(--amb)}
+ .who{font:600 11px "Segoe UI",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--cy);margin-bottom:4px}
+ .me .who{color:var(--amb)}
+ .examples{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+ button{font:600 12px "Segoe UI",sans-serif;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--cy);background:linear-gradient(180deg,var(--cy),var(--cy2));color:#001018;padding:9px 16px;cursor:pointer;box-shadow:0 0 14px rgba(25,230,255,.35)}
+ button.alt{background:rgba(0,0,0,.35);color:var(--cy);box-shadow:none}
+ button.alt:hover{background:rgba(25,230,255,.12)}
+ button:disabled{opacity:.4;cursor:default;box-shadow:none}
+ textarea{width:100%;min-height:96px;font:inherit;color:var(--tx);padding:12px;background:rgba(0,0,0,.5);border:1px solid var(--line);resize:vertical}
+ textarea:focus{outline:none;border-color:var(--cy);box-shadow:0 0 12px rgba(25,230,255,.3)}
+ .bar{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+ .log{font:12px ui-monospace,Consolas,monospace;color:#9fd8e6}
+ .log div{padding:2px 0}
+ .cast{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:6px 0 16px}
+ .card{position:relative;padding:10px 12px;background:linear-gradient(180deg,rgba(10,20,32,.95),rgba(6,12,20,.95));border:1px solid var(--line)}
+ .card::before{content:"";position:absolute;top:-1px;left:-1px;width:10px;height:10px;border:2px solid var(--cy);border-right:0;border-bottom:0}
+ .card b{display:block;color:var(--amb);font:700 14px "Segoe UI",sans-serif;letter-spacing:.04em}
+ .card small{display:block;color:var(--cy);font:600 10.5px "Segoe UI",sans-serif;letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+ .card span{display:block;color:var(--mute);font-size:11.5px;margin-top:4px}
+ .wire{padding:2px 0}.wire .f{color:var(--cy);font-weight:600}.wire .t{color:var(--amb);font-weight:600}
+ .disc{color:var(--mute);font-size:11.5px;margin:4px 0 14px}
+ .card{display:flex;gap:10px;align-items:center}
+ .card .txt{min-width:0}
+ .av{flex:0 0 auto;width:54px;height:54px}
+ .av .bob{animation:bob 3.2s ease-in-out infinite;transform-origin:32px 40px}
+ .av .scan{animation:scan 2.6s linear infinite}
+ .card.live{animation:glow 1s ease-in-out 2}
+ @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+ @keyframes scan{0%{transform:translateY(-18px)}100%{transform:translateY(42px)}}
+ .av .nod{animation:nod 2.4s ease-in-out infinite;transform-origin:32px 26px}
+ .av .ring{transform-origin:32px 26px;animation:ring 2.4s ease-out infinite}
+ .av .ring.r2{animation-delay:1.2s}
+ .av .bar{transform-origin:bottom;animation:bars 1.6s ease-in-out infinite}
+ .av .b2{animation-delay:.2s}.av .b3{animation-delay:.4s}.av .b4{animation-delay:.6s}
+ .av .sweep{animation:sweep 3s ease-in-out infinite}
+ .av .spin{animation:spin 6s linear infinite;transform-origin:32px 32px}
+ .av .draw{stroke-dasharray:100;animation:draw 3s ease-in-out infinite}
+ .av .dart{transform-origin:32px 32px;animation:dart 1.4s ease-in-out infinite}
+ .av .flip{transform-origin:32px 32px;animation:flip 2.8s ease-in-out infinite}
+ @keyframes nod{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+ @keyframes ring{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(3.2)}}
+ @keyframes bars{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1)}}
+ @keyframes sweep{0%,100%{transform:translate(-14px,0)}50%{transform:translate(4px,4px)}}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ @keyframes draw{0%{stroke-dashoffset:100}60%,100%{stroke-dashoffset:0}}
+ @keyframes dart{0%,100%{transform:translateY(-4px)}50%{transform:translateY(4px)}}
+ @keyframes flip{0%,40%{transform:scaleX(1)}50%,90%{transform:scaleX(-1)}100%{transform:scaleX(1)}}
+ @keyframes glow{0%,100%{box-shadow:0 0 0 rgba(25,230,255,0)}50%{box-shadow:0 0 18px rgba(25,230,255,.75)}}
+ table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,Consolas,monospace;margin-top:8px;font-variant-numeric:tabular-nums}
+ th,td{border-bottom:1px solid rgba(25,230,255,.10);padding:6px 8px;text-align:left;vertical-align:top}
+ th{color:var(--mute);font:600 10.5px "Segoe UI",sans-serif;letter-spacing:.16em;text-transform:uppercase;width:30%}
+ td{color:var(--amb)}
+ .ok{color:var(--grn)} .bad{color:var(--red)}
+ .note{font-size:12.5px;color:var(--mute)}
+ a{color:var(--cy)}
+ .strip{display:flex;gap:6px;margin:8px 0 10px;flex-wrap:wrap}
+ .strip div{flex:1 1 110px;padding:7px 8px;border:1px solid var(--line);font:600 10.5px "Segoe UI",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);background:rgba(0,0,0,.35);text-align:center}
+ .strip .on{color:#001018;background:linear-gradient(180deg,var(--cy),var(--cy2));box-shadow:0 0 14px rgba(25,230,255,.45)}
+ .strip .done{color:var(--grn);border-color:rgba(61,255,180,.45)}
+ .tick{display:flex;gap:22px;font:700 22px ui-monospace,Consolas,monospace;color:var(--amb);text-shadow:0 0 10px rgba(255,176,0,.4);font-variant-numeric:tabular-nums}
+ .tick small{display:block;font:600 10px "Segoe UI",sans-serif;letter-spacing:.16em;color:var(--mute);text-shadow:none}
+ nav.top{float:right;margin-top:-30px}
+ nav.top a{margin-left:16px;font:600 12px "Segoe UI",sans-serif;letter-spacing:.14em;text-transform:uppercase;text-decoration:none}
+
+ /* added in v3 (React front end) */
+ .badge{margin-left:10px;padding:1px 8px;border:1px solid var(--amb);color:var(--amb);font:600 10px "Segoe UI",sans-serif;letter-spacing:.14em;text-transform:uppercase}
+ .codebox{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+ .codebox input{margin-left:8px;font:inherit;color:var(--tx);padding:6px 10px;background:rgba(0,0,0,.5);border:1px solid var(--line)}
+ .pulse{animation:pulse 1.4s ease-in-out infinite}
+ @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+ @media (prefers-reduced-motion: reduce){ .av *, .card.live, .pulse{animation:none !important} }
+ /* v3: tabs, questions, decision view, runs */
+ nav.tabs{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+ nav.tabs .tab{background:rgba(0,0,0,.35);color:var(--cy);box-shadow:none;padding:7px 14px}
+ nav.tabs .tab.on{background:linear-gradient(180deg,var(--cy),var(--cy2));color:#001018;box-shadow:0 0 14px rgba(25,230,255,.35)}
+ main.wide{max-width:none}
+ .msg.wide{max-width:100%}
+ .questions .q{margin:10px 0}
+ .questions input{display:block;width:100%;margin-top:6px;font:inherit;color:var(--tx);padding:8px 10px;background:rgba(0,0,0,.5);border:1px solid var(--line)}
+ .questions input:focus{outline:none;border-color:var(--amb)}
+ .small{font-size:12.5px;color:var(--mute)}
+ .warn{color:var(--amb)}
+ button.link{background:none;border:0;box-shadow:none;color:var(--cy);padding:0;font:inherit;letter-spacing:0;text-transform:none;text-decoration:underline}
+ .decision section{margin:16px 0}
+ .decision h3{font:600 12px "Segoe UI",sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--cy);margin:0 0 6px}
+ .decision td{color:var(--tx)} .decision td b{color:var(--amb)}
+ .decision th{width:auto}
+ .verdict{border:1px solid var(--line);padding:10px 14px;margin-bottom:8px;background:rgba(0,0,0,.35)}
+ .verdict small{display:block;font:600 10px "Segoe UI",sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+ .verdict b{font:700 22px "Segoe UI",sans-serif;letter-spacing:.06em}
+ .verdict p{margin:4px 0 0;color:var(--tx);font-size:14px}
+ .verdict.ok{border-color:rgba(61,255,180,.5)} .verdict.ok b{color:var(--grn)}
+ .verdict.warn{border-color:rgba(255,176,0,.6)} .verdict.warn b{color:var(--amb)}
+ .verdict.bad{border-color:rgba(255,77,109,.6)} .verdict.bad b{color:var(--red)}
+ .meta{font-size:13px;color:var(--mute)}
+ section.ask{border:1px solid rgba(255,176,0,.55);padding:10px 14px;background:rgba(255,176,0,.06)}
+ .decision details summary{cursor:pointer;color:var(--cy);font:600 12px "Segoe UI",sans-serif;letter-spacing:.18em;text-transform:uppercase}
+ .memo{background:rgba(0,0,0,.4);border:1px solid var(--line);padding:4px 18px 12px;margin-top:8px}
+ .markdown h2,.markdown h3,.markdown h4{color:var(--amb);font-family:"Segoe UI",sans-serif;margin:14px 0 6px}
+ .markdown h2{font-size:17px} .markdown h3{font-size:15px} .markdown h4{font-size:14px}
+ .markdown p,.markdown li{font-size:14.5px;color:#cfe3ee}
+ .markdown table.md td{color:#cfe3ee}
+ .runs h2{margin:0;font:600 15px "Segoe UI",sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--cy)}
+ table.runlist tr{cursor:pointer} table.runlist tr:hover td{background:rgba(25,230,255,.06)}
+ table.runlist tr.sel td{background:rgba(25,230,255,.12)}
+ table.runlist td{color:var(--tx)}
+ iframe.page{width:100%;height:calc(100vh - 150px);border:1px solid var(--line);background:#05090f}
+
+ /* wider layout: the chat column stays readable, tables and the decision view use the full width */
+ .msg{max-width:92%}
+ .msg.wide{max-width:100%}
+ .cast{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+ textarea{max-width:100%}
+
+ /* 1.4x scale for laptop readability: fonts, cards, avatars, tables and buttons together */
+ html{zoom:1.4}
+ iframe.page{height:calc((100vh - 120px) / 1.4)}

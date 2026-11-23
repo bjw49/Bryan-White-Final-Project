@@ -1,0 +1,22 @@
+.env
+*.env
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+venv/
+output/*
+!output/.gitkeep
+audit/*
+!audit/.gitkeep
+secure/*.key
+.DS_Store
+Thumbs.db
+
+# React front end: node_modules is local only; dist/ IS committed so staff need no Node
+frontend/node_modules/
+_to_delete/
+
+# audit trail: created on first run, one per machine (never commit run history)
+db/audit.db
+db/audit.db-journal
