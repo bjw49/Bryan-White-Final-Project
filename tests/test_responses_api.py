@@ -95,3 +95,34 @@ for bad in ("no json here", '{"summary": "unterminated', "[1, 2]"):
     except ValueError:
         pass
 print("JSON tail handling: PASS")
+
+# Live failure 2026-11-23 (ACIO final, batch 3): a stray "}" after the memo closed the decision early, so "findings"
+# arrived as trailing text and the repair repeated it. The fields after the stray brace are rejoined.
+seen = []
+early = '{"decision": "RECOMMEND", "memo": "ok"},"findings":[{"claim":"x","evidence":["E1"]}]}'
+o = _json_obj(early, seen.append)
+assert o["findings"][0]["claim"] == "x" and o["decision"] == "RECOMMEND" and not seen, (o, seen)
+o = _json_obj(early + "}", seen.append)  # same, with one more stray brace at the end
+assert "findings" in o and seen == [1], (o, seen)
+assert _json_obj(good + ', not json', lambda n: None)["summary"] == "hire IG07"  # an unparseable tail is still ignored
+
+# A prompt-screen flag (400 invalid_prompt) is retried once; other 400s are not.
+class BadRequestError(Exception):
+    pass
+calls = []
+def flaky(**kw):
+    calls.append(1)
+    if len(calls) == 1:
+        raise BadRequestError("Error code: 400 - {'error': {'code': 'invalid_prompt'}}")
+    return "ok"
+import app.llm as _l, time as _time
+_sleep, _time.sleep = _time.sleep, (lambda s: None)
+assert LLM(api="responses")._retry(flaky, {}) == "ok" and len(calls) == 2
+def bad(**kw):
+    raise BadRequestError("Error code: 400 - {'error': {'code': 'invalid_request'}}")
+try:
+    LLM(api="responses")._retry(bad, {}); raise AssertionError("plain 400 must not be retried")
+except BadRequestError:
+    pass
+_time.sleep = _sleep
+print("Stray brace and prompt-flag retry: PASS")

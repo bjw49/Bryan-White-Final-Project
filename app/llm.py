@@ -114,7 +114,8 @@ class LLM:
         self.usage: list[dict] = []
 
     # Transient gateway failures (5xx, dropped connection, timeout) get one more attempt after a short pause.
-    # The SDK already retries once; this covers a second burst. Other errors (400 etc.) are not retried.
+    # The SDK already retries once; this covers a second burst. Other errors (400 etc.) are not retried, except a
+    # prompt-screen flag (invalid_prompt).
     _RETRY_ON = {"InternalServerError", "APIConnectionError", "APITimeoutError", "RateLimitError"}
 
     def _retry(self, fn, kw: dict):
@@ -122,7 +123,10 @@ class LLM:
         try:
             return fn(**kw)
         except Exception as e:
-            if type(e).__name__ not in self._RETRY_ON:
+            # the provider's prompt screen sometimes flags an ordinary request (code invalid_prompt, seen once in live
+            # testing on a manager-research prompt); it is a 400 but not a fault in the request, so it gets one retry too
+            flagged = type(e).__name__ == "BadRequestError" and "invalid_prompt" in str(e)
+            if type(e).__name__ not in self._RETRY_ON and not flagged:
                 raise
             _t.sleep(3)
             return fn(**kw)

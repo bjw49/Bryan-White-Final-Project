@@ -257,6 +257,15 @@ def _json_obj(text: str, on_trailing=None) -> dict:
     if not isinstance(obj, dict):
         raise ValueError("reply must be a JSON object")
     tail = t[end:].strip()
+    while tail.startswith(","):  # a stray "}" closed the object early and the remaining fields follow it: rejoin them
+        try:
+            merged, end2 = json.JSONDecoder().raw_decode(t[a:end - 1] + tail)
+        except json.JSONDecodeError:
+            break
+        if not (isinstance(merged, dict) and len(merged) > len(obj)):
+            break
+        obj, t, a, end = merged, t[a:end - 1] + tail, 0, end2
+        tail = t[end:].strip()
     if tail and on_trailing:
         on_trailing(len(tail))
     return obj
