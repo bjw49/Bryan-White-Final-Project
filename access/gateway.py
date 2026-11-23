@@ -225,6 +225,20 @@ class DataGateway:
         return {"_db": "market.db", "rows": self._rows(c.execute("SELECT e.episode,e.start_month,e.end_month,r.series_id,r.cum_return FROM episode e JOIN episode_returns r USING(episode) ORDER BY 1,4")),
                 "note": "[design] calendar windows chosen by us, not official event definitions."}
 
+    def _inflation(self) -> dict | None:
+        """Breakeven inflation curve (cma_inflation in cma.db), or None if the table is absent."""
+        c = self._ro("cma.db")
+        if not c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cma_inflation'").fetchone():
+            return None
+        rows = self._rows(c.execute("SELECT tenor_years,breakeven,as_of,source,note FROM cma_inflation ORDER BY tenor_years"))
+        if not rows:
+            return None
+        ten = next((r for r in rows if r["tenor_years"] == 10), rows[-1])
+        return {"curve": [{"tenor_years": r["tenor_years"], "breakeven": r["breakeven"]} for r in rows],
+                "ten_year": ten["breakeven"], "as_of": ten["as_of"], "source": ten["source"], "note": ten["note"],
+                "use": "Convert a REAL return target with the 10-year breakeven (the CMA horizon): nominal = (1 + real) x "
+                       "(1 + breakeven) - 1, compared with GEOMETRIC expected returns. evaluate_allocation does this for you."}
+
     def t_get_cma(self, asset_class: str | None = None) -> dict:
         """Capital-market assumptions from cma.db (7 houses, 10-year, index-level). asset_class: US_EQ, INTL_EQ, US_IG, US_HY or CASH; omit for all five."""
         if asset_class is not None and asset_class not in {"US_EQ", "INTL_EQ", "US_IG", "US_HY", "CASH"}:
@@ -238,6 +252,7 @@ class DataGateway:
         corr = self._rows(c.execute("SELECT house,a,b,corr FROM cma_corr"))
         return {"_db": "cma.db", "class_map": mp, "class_summary_direct_estimates": summ, "rows": est, "corr": corr,
                 "houses": self._rows(c.execute("SELECT house,as_of,convention,note FROM cma_house")),
+                "inflation_breakeven": self._inflation(),
                 "rule": "relation DIRECT = a like-for-like estimate; NEAR/COMPONENT/ALTERNATE rows are shown but not in the summary. Estimates are index-level and before manager fees. Houses use different indices, as-of dates and currency conventions; the spread across houses IS the uncertainty: report ranges. CMA correlations exist only from two houses and only for some pairs; say so."}
 
     def t_get_benchmark_returns(self, series: str, start: str = "1900-01-01", end: str = "2100-01-01", limit: int | None = None) -> dict:
@@ -563,6 +578,18 @@ class DataGateway:
         eps = self._rows(mk.execute("SELECT e.episode,r.series_id,r.cum_return FROM episode e JOIN episode_returns r USING(episode)"))
         out = AN.allocation_eval(w, ci, eps, gr, ret_shift, vol_scale, corr_mode)
         out.update({"_db": "market.db", "owner_type_used": ot, "class_inputs": ci["classes"]})
+        inf = self._inflation()
+        if inf:  # real return computed in code from the 10-year breakeven; geometric, because targets compound
+            bei = inf["ten_year"]
+            gap = out["expected_return_arith"] - out["expected_return_geometric_approx"]
+            lo, hi = out["expected_return_arith_range_across_houses"]
+            real = lambda g: round((1 + g) / (1 + bei) - 1, 4)
+            out["inflation_assumption"] = {"ten_year_breakeven": bei, "as_of": inf["as_of"], "source": inf["source"],
+                                           "note": inf["note"]}
+            out["expected_real_return_geometric_approx"] = real(out["expected_return_geometric_approx"])
+            out["expected_real_return_geometric_range_across_houses"] = [real(lo - gap), real(hi - gap)]
+            out["real_return_note"] = ("Real = (1 + geometric nominal) / (1 + 10-year breakeven) - 1. Compare with a real "
+                                       "return target; an owner-stated inflation assumption overrides the breakeven.")
         return out
 
     def t_stress_test(self, weights_pct: dict, max_loss_tolerance: float | None = None) -> dict:

@@ -562,6 +562,32 @@ def stage_challenge(ctx: Ctx, policy: dict, prov: dict, lineup: list) -> dict:
     return obj
 
 
+def guardrail_errors(ctx: Ctx, policy: dict, decision: dict) -> list[str]:
+    """A RECOMMEND or RECOMMEND_WITH_CONDITIONS decision must sit inside the owner-type guardrails
+    (universe/investable_universe.yaml, design defaults) or record a waiver naming each breached class and the reason:
+    total_checks.guardrails = "WAIVED(US_HY: owner states ...)". The yaml allows an owner statement or a human CIO
+    instruction to override a default, so a waiver is a recorded exception, not a loophole."""
+    if decision.get("decision") not in ("RECOMMEND", "RECOMMEND_WITH_CONDITIONS"):
+        return []
+    w = (decision.get("asset_allocation") or {}).get("weights_pct") or {}
+    c = sqlite3.connect(f"file:{(ctx.root / 'db' / 'market.db').as_posix()}?mode=ro", uri=True)
+    ot = policy.get("owner_type") or "other"
+    if not c.execute("SELECT 1 FROM owner_type WHERE owner_type=?", (ot,)).fetchone():
+        ot = "other"
+    rows = c.execute("SELECT asset_class,min_w,max_w FROM guardrail WHERE owner_type=?", (ot,)).fetchall()
+    c.close()
+    waiver = str((decision.get("total_checks") or {}).get("guardrails", ""))
+    errs = []
+    for cls, lo, hi in rows:
+        v = float(w.get(cls, 0) or 0) / 100
+        if v < lo - 1e-9 or v > hi + 1e-9:
+            named = "WAIVED" in waiver.upper() and cls in waiver and len(waiver) > len(cls) + 12
+            if not named:
+                errs.append(f"{cls} at {v * 100:g}% is outside the {ot} guardrail {lo * 100:g}-{hi * 100:g}%: bring it inside, "
+                            f"or set total_checks.guardrails to WAIVED({cls}: <the owner statement or CIO instruction that justifies it>)")
+    return errs
+
+
 def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: dict) -> dict:
     """ACIO final decision. Code builds the manager portfolio and checks authority and Red Team coverage."""
     from access.gateway import CONTRACTS
@@ -590,6 +616,7 @@ def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: 
             dec = ACIODecision.model_validate(o)
             errs += validate_allocation_authority(dec, aar_w)
             errs += validate_decision_against_red_team(dec, RedTeamReport.model_validate(rt))
+            errs += guardrail_errors(ctx, policy, o)
         return errs
     extra_specs = gateway_tools(ctx.gw("acio"))
     obj = _ask(ctx, "acio", msgs, extra_specs, {}, ACIO_STEPS, check, "final")

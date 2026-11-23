@@ -94,9 +94,9 @@ check("unsupported finding dropped and flagged", any("head_us_ig: dropped 1 find
 def h_override(llm, agent, msgs, tools):
     if agent == "acio" and _phase(msgs) == "final" and _tool_msgs(msgs):
         if not repairing(msgs):
-            return edit(llm, agent, msgs, tools, lambda d: (d["asset_allocation"]["weights_pct"].update(US_EQ=30, CASH=15), d.pop("allocation_decision", None)))
-        return edit(llm, agent, msgs, tools, lambda d: (d["asset_allocation"]["weights_pct"].update(US_EQ=30, CASH=15),
-                    d.update(allocation_decision={"aar_weights_pct": AAR_W, "final_weights_pct": {**AAR_W, "US_EQ": 30, "CASH": 15},
+            return edit(llm, agent, msgs, tools, lambda d: (d["asset_allocation"]["weights_pct"].update(US_EQ=30, US_IG=45), d.pop("allocation_decision", None)))
+        return edit(llm, agent, msgs, tools, lambda d: (d["asset_allocation"]["weights_pct"].update(US_EQ=30, US_IG=45),
+                    d.update(allocation_decision={"aar_weights_pct": AAR_W, "final_weights_pct": {**AAR_W, "US_EQ": 30, "US_IG": 45},
                                                   "adopted": "ACIO_OVERRIDE", "reason": "Stress loss above tolerance at 40% equity.", "evidence": ["E1"]})))
     return None
 res, out = run(h_override, "override")
@@ -211,6 +211,40 @@ _m2 = consistency.measure([_d, _alt], ["a", "b"])
 check("a dropped manager lowers overlap", _m2["lineup_overlap_by_class"]["US_EQ"] < 1 and _m2["portfolio_in_common_pct"] < _m["portfolio_in_common_pct"]
       and "UE01" not in _m2["managers_in_every_run"])
 check("consistency markdown renders", "Run-to-run consistency" in "\n".join(consistency.markdown(_m2)))
+
+# 16. guardrails: a RECOMMEND decision outside the owner-type guardrails needs a named waiver, or the run stops
+def _breach(waiver):
+    def h(llm, agent, msgs, tools):
+        if agent == "acio" and _phase(msgs) == "final" and _tool_msgs(msgs):
+            def f(d):
+                d["asset_allocation"]["weights_pct"].update(US_EQ=30, CASH=15)  # cash above the 10% pension guardrail
+                d.update(allocation_decision={"aar_weights_pct": AAR_W, "final_weights_pct": {**AAR_W, "US_EQ": 30, "CASH": 15},
+                                              "adopted": "ACIO_OVERRIDE", "reason": "Benefit-payment reserve.", "evidence": ["E1"]})
+                if waiver:
+                    d["total_checks"]["guardrails"] = waiver
+            return edit(llm, agent, msgs, tools, f)
+        return None
+    return h
+res, out = run(_breach(None), "guardrail-breach")
+check("guardrail breach without a waiver stops the run at final", res["status"] == "RUN_STOPPED" and res["stop"]["stage"] == "final"
+      and "guardrail" in res["stop"]["detail"])
+res, out = run(_breach("WAIVED(CASH: owner states a 15% reserve for benefit payments)"), "guardrail-waived")
+check("guardrail breach with a named waiver is accepted and recorded", res["status"] == "RECOMMEND_WITH_CONDITIONS"
+      and "WAIVED(CASH" in (read(out / "decision.json") or {}).get("total_checks", {}).get("guardrails", ""))
+res, out = run(_breach("WAIVED"), "guardrail-bare-waiver")
+check("a bare WAIVED without the class and reason is not a waiver", res["status"] == "RUN_STOPPED")
+
+# 17. breakeven inflation: the real expected return is computed in code from the 10-year breakeven (as of 2026-10-31)
+_ga = DataGateway("aar", "bei-test", ROOT)
+_ev = _ga.call("evaluate_allocation", weights_pct=AAR_W, owner_type="endowment")
+_bei = _ev.get("inflation_assumption", {}).get("ten_year_breakeven")
+check("10-year breakeven is 2.34% as of 2026-10-31", _bei == 0.0234 and _ev["inflation_assumption"]["as_of"] == "2026-10-31")
+check("real return = (1 + geometric nominal) / (1 + breakeven) - 1",
+      abs(_ev["expected_real_return_geometric_approx"] - ((1 + _ev["expected_return_geometric_approx"]) / 1.0234 - 1)) < 1e-4
+      and _ev["expected_real_return_geometric_range_across_houses"][0] < _ev["expected_real_return_geometric_range_across_houses"][1])
+_cma = _ga.call("get_cma")
+check("get_cma carries the breakeven curve with its caveat", len(_cma["inflation_breakeven"]["curve"]) == 8
+      and "not a forecast" in _cma["inflation_breakeven"]["note"])
 
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)
