@@ -5,7 +5,7 @@ services:
   - type: web
     name: acio
     runtime: python
-    plan: starter            # about $7/month, always on. "free" also works but sleeps when idle (about a minute to wake).
+    plan: free               # free: sleeps after 15 minutes idle (about a minute to wake), 0.1 CPU. "starter" (about $7/month) is always on with 0.5 CPU.
     buildCommand: pip install -r requirements.txt
     # One process on purpose: committee jobs are held in memory by the server while they run.
     startCommand: uvicorn app.server:app --host 0.0.0.0 --port $PORT

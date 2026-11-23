@@ -85,7 +85,7 @@ tests/      gateway, audit, pipeline faults, chat, deflated-Sharpe paper check, 
 `render.yaml` deploys the same app as one Render web service: FastAPI serves the API and the prebuilt React app.
 In Render: **New > Blueprint**, pick this repo, then enter `OPENAI_API_KEY` (or `PORTKEY_API_KEY`) and an
 `AII_ACCESS_CODE` when asked. The hosted app asks for the access code before it will run the committee, so the
-public cannot spend the token budget; one run at a time, with the same per-run time, token and cost caps.
+public cannot spend the token budget; one run at a time, with the same per-run time, token and cost caps. It uses Render's free instance: the first page load after 15 idle minutes takes about a minute while the service wakes.
 Run history on the hosted app is not kept across restarts (Render's disk is temporary); the local version keeps it.
 
 ## Changing the interface (optional, needs Node.js 18+)
