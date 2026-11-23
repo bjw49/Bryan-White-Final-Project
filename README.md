@@ -82,6 +82,8 @@ tests/      gateway, audit, pipeline faults, chat, deflated-Sharpe paper check, 
 
 ## Hosted version (Render)
 
+Live at **https://acio.onrender.com/** (access code required; graders receive it with the Canvas submission).
+
 `render.yaml` deploys the same app as one Render web service: FastAPI serves the API and the prebuilt React app.
 In Render: **New > Blueprint**, pick this repo, then enter `OPENAI_API_KEY` (or `PORTKEY_API_KEY`) and an
 `AII_ACCESS_CODE` when asked. The hosted app asks for the access code before it will run the committee, so the
