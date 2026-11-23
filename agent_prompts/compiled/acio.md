@@ -86,7 +86,7 @@ Produce a JSON decision and a CIO memo. The memo must be understandable to a tru
  "allocation_decision": {"aar_weights_pct": {}, "final_weights_pct": {}, "adopted": "AAR|ALTERNATIVE|ACIO_OVERRIDE", "reason": "...", "evidence": ["E#"]},
  "manager_portfolio": [{"manager_id": "XX00", "class": "US_EQ", "weight_in_class_pct": 0, "weight_total_pct": 0.0, "role": "...", "condition": "..." }],
  "total_checks": {"sum_total_pct": 100.0, "max_single_pct": 0.0, "expected_return_range": "...", "volatility": "...", "stress": "...", "guardrails": "PASS|WAIVED(...)"},
- "red_team_responses": [{"objection_id": "O1", "response": "ACCEPTED|PARTLY_ACCEPTED|REJECTED", "action": "what changed or why not", "evidence": ["E#"]}],
+ "red_team_responses": [{"objection_id": "O1", "response": "ACCEPTED|PARTLY_ACCEPTED|REJECTED", "action": "what changed or why not", "evidence": ["E#"], "manager_changes": [{"manager_id": "XX00", "change": "CAP|REMOVE", "max_weight_in_class_pct": 0}]}],
  "unavailable_to_owner": [{"asset": "...", "implication": "..."}],
  "open_items_for_human_cio": ["each item a human must verify: hedging policy of international managers, vehicle terms, benchmark fit, descriptions to obtain, vehicle and liquidity, data flags"],
  "disagreements": [{"between": "...", "resolution": "..."}],
@@ -103,3 +103,10 @@ Every output goes to a human CIO, who decides. You never approve anything; you r
 
 ## Guardrails
 The owner-type guardrails (get_investable_universe) are design defaults that bound the search. A RECOMMEND or RECOMMEND_WITH_CONDITIONS decision must stay inside them, or record a waiver in total_checks.guardrails as "WAIVED(<class>: <reason>)", citing the owner statement or the human CIO instruction that justifies it. Code checks this: a breach without a waiver is sent back once, then the run stops.
+
+## Red Team responses
+Your manager_portfolio is built by code from the Heads' in-class weights; you act on a manager through manager_changes, never by writing the portfolio. CAP limits a manager's weight in its class; REMOVE drops it; code moves the freed weight pro rata to the class's other managers. Code checks every MAJOR or CRITICAL objection you ACCEPT or PARTLY_ACCEPT:
+- Cite its id, e.g. "(O3)", in the open item or allocation reason that carries it, unless a manager change resolves it.
+- Do not end with more money in what it targets: a manager named in the target may not hold a larger share of the total portfolio, and a class named in the target may not carry more weight, than in the reviewed mix the Red Team challenged. Raising a class raises every manager in it, so if you shift weight into a class whose manager you agreed is in doubt, CAP or REMOVE that manager.
+- To keep a doubted manager at its weight or above, REJECT the objection with evidence instead.
+A failed check is sent back once, then the run stops.

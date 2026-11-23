@@ -8,7 +8,9 @@ Rules this module enforces in code (the model never has the last word on these):
   * findings whose evidence ids do not exist in this run are dropped;
   * a class with weight but no selected managers stops the run;
   * the final allocation must equal the AAR's, or carry an allocation_decision record (validate_allocation_authority);
-  * the ACIO's final decision must answer every Red Team objection (validate_decision_against_red_team).
+  * the ACIO's final decision must answer every Red Team objection, and an accepted MAJOR or CRITICAL objection must be
+    visible to the human CIO and cannot end with more money in the manager or class it targets
+    (validate_decision_against_red_team; the ACIO caps or removes managers through manager_changes).
 """
 from __future__ import annotations
 
@@ -453,7 +455,25 @@ def _run_head(ctx: Ctx, policy: dict, cls: str, agent: str) -> dict:
     return obj
 
 
-def _lineup(final_w: dict, heads: dict) -> list[dict]:
+def _manager_changes(responses) -> dict:
+    """{manager_id: (change, cap, objection_id)} from the ACIO's Red Team responses (malformed items are left to the schema)."""
+    out = {}
+    for r in responses or []:
+        for c in (r.get("manager_changes") or []) if isinstance(r, dict) else []:
+            if isinstance(c, dict) and c.get("manager_id") and c.get("change") in ("REMOVE", "CAP"):
+                cap = c.get("max_weight_in_class_pct")
+                out[c["manager_id"]] = (c["change"], None if cap is None else float(cap), r.get("objection_id", ""))
+    return out
+
+
+def _lineup(final_w: dict, heads: dict, changes: dict | None = None) -> list[dict]:
+    """Manager portfolio built by code: class weight x the Head's in-class weight. changes (from the ACIO's Red Team
+    responses) REMOVE or CAP a manager; the freed in-class weight goes pro rata to the class's unchanged managers."""
+    changes = dict(changes or {})
+    known = {m["manager_id"]: cls for cls, h in heads.items() for m in (h or {}).get("selected", [])}
+    unknown = [m for m in changes if m not in known]
+    if unknown:
+        raise Stop("manager_change_unknown", f"manager_changes name {unknown}, which no Head selected")
     out = []
     for cls in CLASSES:
         w = float(final_w.get(cls, 0) or 0)
@@ -462,10 +482,29 @@ def _lineup(final_w: dict, heads: dict) -> list[dict]:
         h = heads.get(cls)
         if not h or not h.get("selected"):
             raise Stop("allocation_without_lineup", f"{cls} has {w:g}% but its Head selected no managers")
-        for m in h["selected"]:
-            out.append({"manager_id": m["manager_id"], "class": cls, "weight_in_class_pct": float(m["weight_pct"]),
-                        "weight_total_pct": round(w * float(m["weight_pct"]) / 100, 4), "role": m.get("role", ""),
-                        "condition": "; ".join((m.get("ddq_open_items") or [])[:2])})
+        ms = [(m, float(m["weight_pct"])) for m in h["selected"]]
+        new, freed = {}, 0.0
+        for m, x in ms:
+            ch = changes.get(m["manager_id"])
+            y = x if not ch else (0.0 if ch[0] == "REMOVE" else min(x, ch[1]))
+            new[m["manager_id"]], freed = y, freed + (x - y)
+        free = [m["manager_id"] for m, _ in ms if m["manager_id"] not in changes]
+        if freed > 1e-9:
+            base = sum(new[i] for i in free)
+            if base <= 0:
+                raise Stop("manager_change_no_room", f"the caps and removals in {cls} leave no unchanged manager to take the "
+                                                     f"freed {freed:g}% of the class: cap less, or give {cls} less weight")
+            for i in free:
+                new[i] += freed * new[i] / base
+        for m, _ in ms:
+            y = new[m["manager_id"]]
+            if y <= 1e-9:
+                continue
+            ch = changes.get(m["manager_id"])
+            note = f"ACIO {ch[0]} per {ch[2]} (from {float(m['weight_pct']):g}% of class). " if ch else ""
+            out.append({"manager_id": m["manager_id"], "class": cls, "weight_in_class_pct": round(y, 4),
+                        "weight_total_pct": round(w * y / 100, 4), "role": m.get("role", ""),
+                        "condition": note + "; ".join((m.get("ddq_open_items") or [])[:2])})
     return out
 
 
@@ -599,7 +638,19 @@ def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: 
              "\nACIO provisional weights (review): " + json.dumps(prov) +
              "\nRED TEAM REPORT (verdict, objections, premortem):\n" + json.dumps(rt) +
              "\nAnswer EVERY objection: ACCEPTED, PARTLY_ACCEPTED or REJECTED with evidence. If you change class weights, set allocation_decision. "
+             "Code checks each MAJOR or CRITICAL objection you accept or partly accept: (1) cite its id, e.g. (O3), in the open item "
+             "or allocation reason that carries it, unless a manager change resolves it; (2) a manager named in its target may not end "
+             "with a larger share of the total portfolio than in the reviewed mix, and a class named in its target may not end heavier. "
+             "To act on a manager, add to that response manager_changes: [{\"manager_id\": \"UE04\", \"change\": \"CAP\", "
+             "\"max_weight_in_class_pct\": 15}] or {\"change\": \"REMOVE\"}; code moves the freed weight to the class's other managers. "
+             "REJECTING a MAJOR or CRITICAL objection needs evidence. "
              "Do not write manager_portfolio: code builds it. Return the ACIODecision JSON."}]
+
+    try:  # the reviewed mix the Red Team challenged: the baseline for "accepted, then added to"
+        baseline = {"classes": {k: float(v) for k, v in prov.items()},
+                    "managers": {p["manager_id"]: p["weight_total_pct"] for p in _lineup(prov, heads)}}
+    except Stop:
+        baseline = {"classes": {k: float(v) for k, v in prov.items()}, "managers": {}}
 
     def check(o):
         errs = []
@@ -607,15 +658,17 @@ def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: 
         errs += _weights_errors(w)
         if not errs:
             try:
-                o["manager_portfolio"] = _lineup(w, heads)
+                o["manager_portfolio"] = _lineup(w, heads, _manager_changes(o.get("red_team_responses")))
             except Stop as s:
                 errs.append(s.detail)
+        if errs:  # no lineup: schema errors on the empty portfolio would only bury the real cause
+            return errs
         o["followups_used"] = ctx.followups
         errs += _errors(ACIODecision, o)
         if not errs:
             dec = ACIODecision.model_validate(o)
             errs += validate_allocation_authority(dec, aar_w)
-            errs += validate_decision_against_red_team(dec, RedTeamReport.model_validate(rt))
+            errs += validate_decision_against_red_team(dec, RedTeamReport.model_validate(rt), baseline)
             errs += guardrail_errors(ctx, policy, o)
         return errs
     extra_specs = gateway_tools(ctx.gw("acio"))
@@ -656,6 +709,9 @@ def write_memo(policy: dict, aar: dict, heads: dict, prov: dict, lineup: list, r
         r = resp.get(o["id"], {})
         L.append(f"- **{o['id']} ({o['severity']}, {o['target']})**: {o['claim']} Fix criterion: {o['fix_criterion']} "
                  f"ACIO: {r.get('response', 'NO RESPONSE')}. {r.get('action', '')}")
+        for c in r.get("manager_changes") or []:
+            L.append(f"  - Manager change: {c.get('change')} {c.get('manager_id')}"
+                     + (f" to {c.get('max_weight_in_class_pct'):g}% of its class" if c.get("change") == "CAP" else ""))
     if rt.get("premortem"):
         L += ["", "Premortem:"] + [f"- {p.get('mechanism', '')} (early warning: {p.get('early_warning', '')})" for p in rt["premortem"]]
     if dec:

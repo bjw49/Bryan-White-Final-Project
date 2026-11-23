@@ -246,5 +246,56 @@ _cma = _ga.call("get_cma")
 check("get_cma carries the breakeven curve with its caveat", len(_cma["inflation_breakeven"]["curve"]) == 8
       and "not a forecast" in _cma["inflation_breakeven"]["note"])
 
+# 18. objection coverage: an accepted MAJOR objection on a manager cannot end with more money in that manager
+_happy = read(next(ROOT.joinpath("output").glob("happy-*/decision.json")))
+_ue = next(p for p in _happy["manager_portfolio"] if p["class"] == "US_EQ")
+_uid, _uic = _ue["manager_id"], _ue["weight_in_class_pct"]
+_base_total = AAR_W["US_EQ"] * _uic / 100
+
+def _cover(response="ACCEPTED", changes=None, cite=True, raise_eq=True, evidence=True):
+    def h(llm, agent, msgs, tools):
+        ph = _phase(msgs)
+        if agent == "red_team" and ph == "challenge" and _tool_msgs(msgs):
+            return edit(llm, agent, msgs, tools, lambda d: d["objections"][0].update(
+                target=f"US_EQ / {_uid}", claim=f"{_uid} is a large core weight despite weak recent results."))
+        if agent == "acio" and ph == "final" and _tool_msgs(msgs):
+            def f(d):
+                fw = {**AAR_W, "US_EQ": 45, "US_IG": 30} if raise_eq else dict(AAR_W)
+                d["asset_allocation"]["weights_pct"] = fw
+                if raise_eq:  # the pension guardrail caps US_EQ at 40%; waive it so this test isolates the coverage check
+                    d["total_checks"]["guardrails"] = "WAIVED(US_EQ: human CIO instruction for this test)"
+                d["allocation_decision"] = {"aar_weights_pct": AAR_W, "final_weights_pct": fw, "adopted": "ACIO_OVERRIDE" if raise_eq else "AAR",
+                                            "reason": "Shift IG risk budget to equity.", "evidence": ["E1"]}
+                d["red_team_responses"] = [{"objection_id": "O1", "response": response, "action": "Size down the doubted manager.",
+                                            "evidence": ["E1"] if evidence else [], "manager_changes": changes or []}]
+                d["open_items_for_human_cio"] = ["Review recent relative weakness" + (" (O1)" if cite else "")]
+            return edit(llm, agent, msgs, tools, f)
+        return None
+    return h
+
+res, out = run(_cover(), "cover-added")
+check("accepted objection on a manager, then more money in it: run stops at final", res["status"] == "RUN_STOPPED"
+      and res["stop"]["stage"] == "final" and "share of the total portfolio rose" in res["stop"]["detail"])
+res, out = run(_cover(changes=[{"manager_id": _uid, "change": "CAP", "max_weight_in_class_pct": round(_uic / 2, 2)}]), "cover-cap")
+_d = read(out / "decision.json") or {"manager_portfolio": [], "asset_allocation": {"weights_pct": {}}}
+_m = next((p for p in _d["manager_portfolio"] if p["manager_id"] == _uid), None)
+_eq = sum(p["weight_in_class_pct"] for p in _d["manager_portfolio"] if p["class"] == "US_EQ")
+check("CAP is applied by code: the manager's share falls below the reviewed mix", res["status"] == "RECOMMEND_WITH_CONDITIONS"
+      and _m is not None and _m["weight_total_pct"] <= _base_total + 0.01 and "ACIO CAP per O1" in _m["condition"])
+check("CAP: freed weight goes to the class's other managers (class still 100%)", abs(_eq - 100) < 0.01
+      and abs(sum(p["weight_total_pct"] for p in _d["manager_portfolio"]) + _d["asset_allocation"]["weights_pct"].get("CASH", 0) - 100) < 0.5)
+check("CAP is shown in the memo", "Manager change: CAP" in ((out / "memo.md").read_text() if (out / "memo.md").exists() else ""))
+res, out = run(_cover(changes=[{"manager_id": _uid, "change": "REMOVE"}]), "cover-remove")
+check("REMOVE drops the manager from the code-built lineup", res["status"] == "RECOMMEND_WITH_CONDITIONS"
+      and _uid not in {p["manager_id"] for p in (read(out / "decision.json") or {}).get("manager_portfolio", [{"manager_id": _uid}])})
+res, out = run(_cover(raise_eq=False, cite=False), "cover-uncited")
+check("accepted MAJOR objection not cited anywhere the CIO looks: run stops", res["status"] == "RUN_STOPPED" and "cannot see" in res["stop"]["detail"])
+res, out = run(_cover(response="REJECTED", evidence=False), "cover-reject-noev")
+check("MAJOR objection rejected without evidence: run stops", res["status"] == "RUN_STOPPED" and "rejected without evidence" in res["stop"]["detail"])
+res, out = run(_cover(response="REJECTED"), "cover-reject-ev")
+check("MAJOR objection rejected with evidence may keep the higher weight", res["status"] == "RECOMMEND_WITH_CONDITIONS")
+res, out = run(_cover(changes=[{"manager_id": "UE99", "change": "REMOVE"}]), "cover-unknown")
+check("a manager change naming an unselected manager is refused", res["status"] == "RUN_STOPPED" and "no Head selected" in res["stop"]["detail"])
+
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

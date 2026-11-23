@@ -192,7 +192,7 @@ class ScriptedLLM:
                           "manager_portfolio": [], "total_checks": {"sum_total_pct": 100.0},
                           "red_team_responses": [{"objection_id": "O1", "response": "PARTLY_ACCEPTED", "action": "Adds a drawdown monitoring condition.", "evidence": eids[-1:]}],
                           "unavailable_to_owner": [{"item": "PRIVATE_EQUITY", "reason": "not available in this system"}],
-                          "open_items_for_human_cio": ["Confirm currency hedging of international managers", "Confirm drawdown tolerance"],
+                          "open_items_for_human_cio": ["Confirm currency hedging of international managers", "Confirm drawdown tolerance (O1)"],
                           "disagreements": [], "followups_used": 0,
                           "memo": "Recommend the AAR mix with conditions. The Red Team's stress objection is addressed by a monitoring condition. Human CIO should confirm the drawdown tolerance and hedging policy before funding.",
                           "findings": [{"claim": "Final mix is inside the default endowment guardrails.", "evidence": eids[-1:]}]})
