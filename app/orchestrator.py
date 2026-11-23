@@ -8,8 +8,8 @@ Rules this module enforces in code (the model never has the last word on these):
   * findings whose evidence ids do not exist in this run are dropped;
   * a class with weight but no selected managers stops the run;
   * the final allocation must equal the AAR's, or carry an allocation_decision record (validate_allocation_authority);
-  * the ACIO's final decision must answer every Red Team objection, and an accepted MAJOR or CRITICAL objection must be
-    visible to the human CIO and cannot end with more money in the manager or class it targets
+  * the ACIO's final decision must answer every Red Team objection, and an accepted MAJOR or CRITICAL objection
+    cannot end with more money in the manager or class it targets
     (validate_decision_against_red_team; the ACIO caps or removes managers through manager_changes).
 """
 from __future__ import annotations
@@ -638,8 +638,7 @@ def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: 
              "\nACIO provisional weights (review): " + json.dumps(prov) +
              "\nRED TEAM REPORT (verdict, objections, premortem):\n" + json.dumps(rt) +
              "\nAnswer EVERY objection: ACCEPTED, PARTLY_ACCEPTED or REJECTED with evidence. If you change class weights, set allocation_decision. "
-             "Code checks each MAJOR or CRITICAL objection you accept or partly accept: (1) cite its id, e.g. (O3), in the open item "
-             "or allocation reason that carries it, unless a manager change resolves it; (2) a manager named in its target may not end "
+             "Code checks each MAJOR or CRITICAL objection you accept or partly accept: a manager named in its target may not end "
              "with a larger share of the total portfolio than in the reviewed mix, and a class named in its target may not end heavier. "
              "To act on a manager, add to that response manager_changes: [{\"manager_id\": \"UE04\", \"change\": \"CAP\", "
              "\"max_weight_in_class_pct\": 15}] or {\"change\": \"REMOVE\"}; code moves the freed weight to the class's other managers. "

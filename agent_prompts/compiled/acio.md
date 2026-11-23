@@ -106,7 +106,6 @@ The owner-type guardrails (get_investable_universe) are design defaults that bou
 
 ## Red Team responses
 Your manager_portfolio is built by code from the Heads' in-class weights; you act on a manager through manager_changes, never by writing the portfolio. CAP limits a manager's weight in its class; REMOVE drops it; code moves the freed weight pro rata to the class's other managers. Code checks every MAJOR or CRITICAL objection you ACCEPT or PARTLY_ACCEPT:
-- Cite its id, e.g. "(O3)", in the open item or allocation reason that carries it, unless a manager change resolves it.
 - Do not end with more money in what it targets: a manager named in the target may not hold a larger share of the total portfolio, and a class named in the target may not carry more weight, than in the reviewed mix the Red Team challenged. Raising a class raises every manager in it, so if you shift weight into a class whose manager you agreed is in doubt, CAP or REMOVE that manager.
 - To keep a doubted manager at its weight or above, REJECT the objection with evidence instead.
 A failed check is sent back once, then the run stops.

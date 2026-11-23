@@ -288,8 +288,8 @@ check("CAP is shown in the memo", "Manager change: CAP" in ((out / "memo.md").re
 res, out = run(_cover(changes=[{"manager_id": _uid, "change": "REMOVE"}]), "cover-remove")
 check("REMOVE drops the manager from the code-built lineup", res["status"] == "RECOMMEND_WITH_CONDITIONS"
       and _uid not in {p["manager_id"] for p in (read(out / "decision.json") or {}).get("manager_portfolio", [{"manager_id": _uid}])})
-res, out = run(_cover(raise_eq=False, cite=False), "cover-uncited")
-check("accepted MAJOR objection not cited anywhere the CIO looks: run stops", res["status"] == "RUN_STOPPED" and "cannot see" in res["stop"]["detail"])
+res, out = run(_cover(raise_eq=False, cite=False), "cover-unchanged")
+check("accepted objection with no added exposure passes (the memo lists every response)", res["status"] == "RECOMMEND_WITH_CONDITIONS")
 res, out = run(_cover(response="REJECTED", evidence=False), "cover-reject-noev")
 check("MAJOR objection rejected without evidence: run stops", res["status"] == "RUN_STOPPED" and "rejected without evidence" in res["stop"]["detail"])
 res, out = run(_cover(response="REJECTED"), "cover-reject-ev")

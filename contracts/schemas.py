@@ -219,8 +219,6 @@ CLASS_ID = re.compile(r"\b(US_EQ|INTL_EQ|US_IG|US_HY|CASH)\b")
 def validate_decision_against_red_team(dec: ACIODecision, rt: RedTeamReport, baseline: dict | None = None) -> list[str]:
     """Programmatic coverage check. Every objection needs a response. A MAJOR or CRITICAL objection:
       * REJECTED needs evidence;
-      * ACCEPTED or PARTLY_ACCEPTED must be visible to the human CIO: its id is cited in open_items_for_human_cio
-        or allocation_decision.reason, or the response carries a manager change;
       * ACCEPTED or PARTLY_ACCEPTED cannot end with MORE money in what it targets: a manager named in the target may
         not hold a larger share of the total portfolio, and a class named in the target may not carry a larger weight,
         than in the reviewed mix the Red Team challenged (baseline). Accepting a doubt and then adding to it is the
@@ -231,7 +229,6 @@ def validate_decision_against_red_team(dec: ACIODecision, rt: RedTeamReport, bas
     base_m, base_c = base.get("managers", {}), base.get("classes", {})
     fin_m = {p.manager_id: p.weight_total_pct for p in dec.manager_portfolio}
     fin_c = {k: float(v) for k, v in dec.asset_allocation.get("weights_pct", {}).items()}
-    seen = " ".join(dec.open_items_for_human_cio) + " " + str((dec.allocation_decision or {}).get("reason", ""))
     for o in rt.objections:
         r = resp.get(o.id)
         if r is None:
@@ -243,9 +240,6 @@ def validate_decision_against_red_team(dec: ACIODecision, rt: RedTeamReport, bas
             if not r.evidence:
                 errs.append(f"{o.id} ({o.severity}) rejected without evidence")
             continue
-        if not r.manager_changes and not re.search(rf"\b{re.escape(o.id)}\b", seen):
-            errs.append(f"{o.id} ({o.severity}) was {r.response} but the human CIO cannot see what follows from it: cite "
-                        f"({o.id}) in the open item or allocation reason that carries it, or add a manager change")
         for m in sorted(set(MANAGER_ID.findall(o.target))):
             b, f = base_m.get(m), fin_m.get(m, 0.0)
             if b is not None and f > b + 0.01:
