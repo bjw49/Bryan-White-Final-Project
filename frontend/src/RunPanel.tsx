@@ -1,6 +1,6 @@
 // Live view of one committee run: clock, tokens, cost, stage strip and the agent-to-agent wire. Polls /api/job.
 import { useEffect, useRef, useState } from 'react'
-import { api, type JobView, type WireMsg } from './api'
+import { api, timeBudget, type JobView, type WireMsg } from './api'
 import { who } from './cast'
 import { label } from './labels'
 
@@ -61,7 +61,7 @@ export function RunPanel({ jobId, onAgent, onDone }: { jobId: string; onAgent: (
       : <div key={i}>[{pad(m.t)}s] {m.text}</div>)}</div>
     <div className="note">
       {err ? <span className="bad">{err}</span>
-        : !finished ? 'Running. Typical runs take several minutes; the limit is 10.'
+        : !finished ? `Running. Typical runs take 2 to 3 minutes; the limit is ${Math.round(timeBudget() / 60)}.`
         : job!.status === 'error' ? <span className="bad">Run failed: {job!.result?.error}</span>
         : <Result job={job!} />}
     </div>
@@ -75,7 +75,7 @@ function Result({ job }: { job: JobView }) {
     <div className={L.tone}>
       Decision: <b>{L.text}</b> {r.stop ? `(stopped at ${r.stop.stage}: ${r.stop.detail})` : ''}
     </div>
-    <div>Elapsed: {job.elapsed} s of the 600 s limit &middot; {job.tokens.toLocaleString()} tokens &middot; ${job.cost_usd.toFixed(4)}. Run id: {r.run_id}</div>
+    <div>Elapsed: {job.elapsed} s of the {timeBudget()} s limit &middot; {job.tokens.toLocaleString()} tokens &middot; ${job.cost_usd.toFixed(4)}. Run id: {r.run_id}</div>
     <div className="note">The decision opens below. Every run is also under Runs &amp; Memos.</div>
   </>
 }

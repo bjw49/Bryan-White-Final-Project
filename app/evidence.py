@@ -58,8 +58,6 @@ def main(argv=None) -> int:
     from app import safety, tokenomics, dashboard
     print("\n=== safety scenarios ===")
     sres = safety.run_all()
-    t = tokenomics.write(ROOT)
-    dashboard.build(ROOT)
     L = ["# Evidence summary", "", f"Generated {time.strftime('%Y-%m-%d %H:%M')} local time.", "",
          "| Label | Run | Status | Time (s) | Tokens | Cached input | Cost (USD) | Follow-ups |", "|---|---|---|---|---|---|---|---|"]
     for label, res, tel in done:
@@ -83,6 +81,11 @@ def main(argv=None) -> int:
         (ROOT / "output" / "consistency.json").write_text(json.dumps(cm, indent=2), encoding="utf-8")
         L += [""] + consistency.markdown(cm)
     L += ["", f"Safety: {sum(r['passed'] for r in sres)} of {len(sres)} defences held (output/dashboard/safety.html).", ""]
+    # tokenomics reads this batch's run ids from evidence_summary.md, so write the table first; computing it earlier
+    # averaged the previous batch in with this one
+    (ROOT / "output" / "evidence_summary.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    t = tokenomics.write(ROOT)
+    dashboard.build(ROOT)
     if t.get("n_runs"):
         L.append(f"Tokenomics: ${t['per_run']['cost_usd']:.4f} per run, ${t['per_user_month_usd']:.2f} per user per month "
                  f"({t['runs_per_user_month']:g} runs), ${t['scale'][10000]['model_cost_month']:,.0f} per month at 10,000 users.")

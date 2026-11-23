@@ -387,7 +387,7 @@ async function runCommittee(){
         else {
           const r = j.result; const ok = (r.status === 'RUN_STOPPED' || r.status === 'ESCALATED') ? 'bad' : 'ok';
           res.innerHTML = `<div class="${ok}">Status: ${esc(r.status)} ${r.stop ? '(stopped at ' + esc(r.stop.stage) + ': ' + esc(r.stop.detail) + ')' : ''}</div>
-            <div>Elapsed: ${j.elapsed} s of the 600 s limit &middot; ${(j.tokens||0).toLocaleString()} tokens &middot; $${(j.cost_usd||0).toFixed(4)}. Run id: ${esc(r.run_id)}</div>
+            <div>Elapsed: ${j.elapsed} s of the 420 s limit &middot; ${(j.tokens||0).toLocaleString()} tokens &middot; $${(j.cost_usd||0).toFixed(4)}. Run id: ${esc(r.run_id)}</div>
             <div style="margin-top:6px"><a href="${r.dashboard}" target="_blank">Open this run on the dashboard</a> &middot; <a href="${r.dashboard_index}" target="_blank">All runs and asset-class pages</a></div>`;
         }
         break;

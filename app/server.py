@@ -110,7 +110,13 @@ def health():
 @app.get("/api/config")
 def config():
     return {"mock": core._mock, "access_code_required": bool(access_code()),
-            "model": os.environ.get("MODEL_NAME", "gpt-6-luna"), "api": os.environ.get("AII_API", "responses")}
+            "model": os.environ.get("MODEL_NAME", "gpt-6-luna"), "api": os.environ.get("AII_API", "responses"),
+            "time_budget_s": _time_budget()}
+
+
+def _time_budget() -> float:
+    from app import orchestrator
+    return orchestrator.TIME_BUDGET_S
 
 
 @app.get("/api/examples")

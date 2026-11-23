@@ -1,7 +1,7 @@
 // ACIO app: Committee (describe the owner, answer the ACIO's questions, watch the run, read the decision),
 // Runs & Memos (every saved run), Tokenomics and Safety.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, getCode, setCode, type Config, type Example, type Policy, type Question } from './api'
+import { api, getCode, setCode, setTimeBudget, type Config, type Example, type Policy, type Question } from './api'
 import { CastGrid } from './cast'
 import { DecisionView } from './DecisionView'
 import { RunPanel } from './RunPanel'
@@ -38,7 +38,7 @@ export default function App() {
 
   useEffect(() => {
     api.examples().then(setExamples).catch(e => push({ kind: 'error', text: (e as Error).message }))
-    api.config().then(setConfig).catch(() => setConfig(null))
+    api.config().then(c => { setTimeBudget(c.time_budget_s); setConfig(c) }).catch(() => setConfig(null))
   }, [])
   useEffect(() => { if (tab === 'committee') bottom.current?.scrollIntoView({ behavior: 'smooth' }) }, [items, tab])
 

@@ -12,7 +12,10 @@ export interface RunDetail { run_id: string; status: string; stopped: boolean; s
 export interface WireMsg { t: number; from?: string; to?: string; text: string }
 export interface RunResult { status?: string; stop?: { stage: string; detail: string } | null; run_id?: string; dashboard?: string; dashboard_index?: string; error?: string }
 export interface JobView { status: 'running' | 'done' | 'error'; messages: WireMsg[]; result: RunResult | null; elapsed: number; tokens: number; cost_usd: number }
-export interface Config { mock: boolean; access_code_required: boolean; model: string; api: string }
+export interface Config { mock: boolean; access_code_required: boolean; model: string; api: string; time_budget_s?: number }
+let budgetS = 420
+export const timeBudget = () => budgetS
+export function setTimeBudget(s?: number) { if (s) budgetS = s }
 
 const CODE_KEY = 'acio-access-code'
 export function getCode(): string { try { return sessionStorage.getItem(CODE_KEY) || '' } catch { return '' } }
