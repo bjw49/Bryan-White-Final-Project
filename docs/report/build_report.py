@@ -83,7 +83,10 @@ def capture(run_dir: Path | None):
     SHOTS.mkdir(parents=True, exist_ok=True)
     dash = ROOT / "output" / "dashboard"
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        try:
+            b = p.chromium.launch()
+        except Exception:  # no bundled browser: use the installed Chrome
+            b = p.chromium.launch(channel="chrome")
         pg = b.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
 
         def section(url, start, stop, name, maxh=1400):
