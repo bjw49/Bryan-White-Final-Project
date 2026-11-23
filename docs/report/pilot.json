@@ -1,8 +1,8 @@
 {
   "_instructions": "Fill this in, then rebuild: python docs/report/build_report.py. Leave a field empty and the report shows a yellow TO FILL box there.",
   "author": "Bryan White",
-  "repo_url": "",
-  "live_url": "",
+  "repo_url": "https://github.com/bjw49/Bryan-White-Final-Project",
+  "live_url": "https://acio.onrender.com/",
   "pilot": {
     "who": "",
     "role": "",
@@ -17,5 +17,9 @@
   },
   "analyst_cost_per_hour_usd": 150,
   "analyst_cost_basis": "Stated estimate: fully loaded cost of an investment analyst or associate at an asset owner. Change it here.",
-  "peer_fresh_clone": {"who": "", "minutes_to_running": null, "notes": ""}
+  "peer_fresh_clone": {
+    "who": "",
+    "minutes_to_running": null,
+    "notes": ""
+  }
 }
