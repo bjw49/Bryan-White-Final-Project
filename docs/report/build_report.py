@@ -252,7 +252,14 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "the JSON object, and the repair repeated the mistake; in the other, the provider's prompt screen rejected an ordinary "
      "request (400 invalid_prompt). Fixed: the parser rejoins fields written after a stray brace (the result must still pass "
      "the contract), and a prompt-screen rejection gets one retry."),
-    ("evidence_summary.md", "Batch 4 (submitted code)", "The measured evidence in Sections 4 and 6."),
+    ("evidence_summary_batch4.md", "Batch 4",
+     "No run stopped, and the ACIO capped or removed doubted managers in most runs. One repeat ended DO_NOT_RECOMMEND because "
+     "the Red Team said it could not audit the lineups. It was right: read_proposals returned all five proposals at once "
+     "(about 15,000 characters each) and the tool-result cap cut that to the first 14,000 characters without saying so. "
+     "This affected every earlier batch: the Red Team saw the AAR in full but only part of the Heads' proposals. Fixed: "
+     "read_proposals pages by size and names what it left out, the Red Team reads one proposal per call, and any over-cap "
+     "result is marked truncated instead of cut silently."),
+    ("evidence_summary.md", "Batch 5 (submitted code)", "The measured evidence in Sections 4 and 6."),
 ]
 
 
@@ -349,7 +356,7 @@ def coverage_html() -> str:
                     f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) or "none") + "</td></tr>")
     after = ""
     ids2 = {x["run_id"] for x in b2}
-    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
+    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
     b3 = list(b3.values())
     if b3:
         bad3 = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b3 if r["status"] != "RUN_STOPPED")
@@ -358,7 +365,7 @@ def coverage_html() -> str:
             d = load(ROOT / "output" / r["run_id"] / "decision.json") or {}
             caps += sum(len(x.get("manager_changes") or []) for x in d.get("red_team_responses", []))
         stopped = sum(r["status"] == "RUN_STOPPED" for r in b3)
-        after = (f"<p><b>After the fix (batches 3 and 4, {len(b3)} runs):</b> {bad3} completed run(s) breach the rule; the ACIO used {caps} manager "
+        after = (f"<p><b>After the fix (batches 3 to 5, {len(b3)} runs):</b> {bad3} completed run(s) breach the rule; the ACIO used {caps} manager "
                  f"cap(s) or removal(s); {stopped} run(s) stopped. A breach is now sent back once with the exact fix, and the run stops if it "
                  "is not fixed.</p>")
     return ("<h3>The Red Team, enforced</h3><p>A devil's advocate only matters if its accepted objections change the decision. Batch 2 showed "
@@ -374,7 +381,7 @@ def coverage_html() -> str:
 def consistency_html() -> str:
     rows = []
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
-                        ("consistency.json", "Batch 4")):
+                        ("consistency_batch4.json", "Batch 4"), ("consistency.json", "Batch 5")):
         c = load(ROOT / "output" / fname)
         if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue

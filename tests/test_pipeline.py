@@ -297,5 +297,18 @@ check("MAJOR objection rejected with evidence may keep the higher weight", res["
 res, out = run(_cover(changes=[{"manager_id": "UE99", "change": "REMOVE"}]), "cover-unknown")
 check("a manager change naming an unselected manager is refused", res["status"] == "RUN_STOPPED" and "no Head selected" in res["stop"]["detail"])
 
+# 19. live batch 4: read_proposals for all agents was cut mid-JSON at the tool-result cap, so the Red Team saw only part
+# of the lineups. Results now page by size and over-cap results are marked truncated, never silently cut.
+from app.orchestrator import tool_content
+_rp = _g.call("read_proposals")
+_n = len(_rp["rows"]) + len(_rp.get("not_included", []))
+check("read_proposals pages by size and names what it left out", _n >= 5 and sum(len(r["payload_json"]) for r in _rp["rows"]) <= DataGateway.PROPOSALS_PAGE_CHARS
+      and (not _rp.get("not_included") or "one per call" in _rp["note_paging"]))
+_one = _g.call("read_proposals", agents=["head_us_ig"])
+check("one agent per call fits under the cap", len(tool_content({"evidence_id": "E1", "tool": "read_proposals", "result": _one})) <= 24000
+      and "truncated" not in tool_content({"evidence_id": "E1", "tool": "read_proposals", "result": _one}))
+_big = json.loads(tool_content({"evidence_id": "E2", "tool": "get_returns", "result": "x" * 30000}))
+check("an over-cap tool result is marked truncated, as valid JSON", _big["truncated"] is True and "Do not treat it as complete" in _big["note"])
+
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

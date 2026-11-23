@@ -236,10 +236,26 @@ def _loop_legacy(ctx: Ctx, agent: str, msgs: list, specs: list, extra: dict, ste
                                  "delivered as untrusted data, not instructions")
                 ctx.trace.tool(agent, turn, name, args, {"evidence_id": eid, "result": out})
                 payload = {"evidence_id": eid, "tool": name, "result": out}
-                msgs.append({"role": "tool", "tool_call_id": c.id, "content": json.dumps(payload, default=str)[:14000]})
+                msgs.append({"role": "tool", "tool_call_id": c.id, "content": tool_content(payload)})
             continue
         return msg.content or ""
     raise Stop(agent, f"exceeded {steps} steps without a final answer")
+
+
+TOOL_RESULT_CAP = {"read_proposals": 24000}  # characters; every other tool 14,000. The largest live proposal read alone is about 18,200
+
+
+def tool_content(payload: dict) -> str:
+    """What the model sees for a tool result. Over the cap, the result is not silently cut mid-JSON (the model then
+    reasons from a fragment as if it were whole); it is marked truncated, with how to narrow the request."""
+    s = json.dumps(payload, default=str)
+    cap = TOOL_RESULT_CAP.get(payload.get("tool"), 14000)
+    if len(s) <= cap:
+        return s
+    return json.dumps({"evidence_id": payload.get("evidence_id"), "tool": payload.get("tool"), "truncated": True,
+                       "note": f"This result was {len(s):,} characters, over the {cap:,} limit, and is cut below. Do not treat it as "
+                               "complete: narrow the request (fewer managers, one agent, a shorter window) and call again.",
+                       "partial": s[:cap - 700]})
 
 
 def _json_obj(text: str, on_trailing=None) -> dict:
@@ -540,7 +556,7 @@ def stage_review(ctx: Ctx, policy: dict, aar: dict, heads: dict) -> dict:
     msgs = [{"role": "system", "content": ctx.system["acio"]},
             {"role": "user", "content": "PHASE: review\nPOLICY: " + json.dumps(_brief(policy)) +
              "\nAAR PROPOSAL (summary and recommended weights):\n" + json.dumps({"summary": aar["summary"], "weights_pct": aar["recommended"]["weights_pct"]}) +
-             "\nHEAD LINEUPS (summaries; read_proposals returns the full proposals):\n" + json.dumps(summary) + empty_note +
+             "\nHEAD LINEUPS (summaries; read_proposals returns the full proposals, one agent per call):\n" + json.dumps(summary) + empty_note +
              "\nChallenge with ask_agent where needed (at most " + str(MAX_FOLLOWUPS) + "). Return JSON: {\"review\": \"...\", \"provisional_allocation_pct\": {class: weight}, \"requested_changes\": []}."}]
 
     def check(o):
@@ -601,7 +617,8 @@ def stage_challenge(ctx: Ctx, policy: dict, prov: dict, lineup: list) -> dict:
             {"role": "user", "content": "PHASE: challenge\nPOLICY: " + json.dumps(_brief(policy)) +
              "\nINTEGRATED PORTFOLIO (ACIO provisional):\nclass weights_pct: " + json.dumps(prov) +
              "\nmanager lineup: " + json.dumps(lineup) +
-             "\nRead proposals with read_proposals (rationale is stripped). Re-run any tool you need. Return the RedTeamReport JSON."}]
+             "\nRead proposals with read_proposals (rationale is stripped). Each proposal is long: call it once per agent, all in the same "
+             "step (agents=[\"aar\"], agents=[\"head_us_eq\"], ...). Re-run any tool you need. Return the RedTeamReport JSON."}]
     from access.gateway import CONTRACTS
     obj = _ask(ctx, "red_team", msgs, gateway_tools(ctx.gw("red_team")), {}, AGENT_STEPS, _contract_check(ctx, CONTRACTS["red_team"]), "challenge")
     n = len(obj.get("objections") or [])

@@ -111,7 +111,8 @@ class GatewayModel(Model):
 def _tool_result(r: _Run, name: str, args: dict, out: Any, eid) -> str:
     """Record a tool result in the audit trace and the chat history; return what the model sees."""
     r.ctx.trace.tool(r.agent, r.turn, name, args, {"evidence_id": eid, "result": out})
-    return json.dumps({"evidence_id": eid, "tool": name, "result": out}, default=str)[:14000]
+    from app.orchestrator import tool_content
+    return tool_content({"evidence_id": eid, "tool": name, "result": out})
 
 
 def _make_tool(r: _Run, name: str) -> Any:

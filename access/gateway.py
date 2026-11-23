@@ -461,6 +461,8 @@ class DataGateway:
             return [self._strip_reasoning(v) for v in o]
         return o
 
+    PROPOSALS_PAGE_CHARS = 17000  # under the 24,000-character tool-result cap for read_proposals (app/orchestrator.py)
+
     def t_read_proposals(self, agents: list[str] | None = None) -> dict:
         """ACIO and Red Team only. Heads cannot read each other's proposals (information barrier)."""
         a = sqlite3.connect(f"file:{(self.root / 'db' / 'audit.db').as_posix()}?mode=ro", uri=True); a.row_factory = sqlite3.Row
@@ -476,7 +478,21 @@ class DataGateway:
             for r in out:  # Red Team sees structured outputs, not the authors' free-text reasoning
                 p = json.loads(r["payload_json"])
                 r["payload_json"] = json.dumps(self._strip_reasoning(p))
-        res = {"_db": "audit.db", "rows": out, "agents_in_run": sorted({r["agent"] for r in rows})}
+        # Page by size. Each Head's proposal is about 15,000 characters, and tool results are capped, so reading all five
+        # at once used to be cut mid-JSON without notice: in live batch 4 the Red Team saw only part of the lineups,
+        # objected that the managers could not be audited, and the ACIO did not recommend. Rows that do not fit are
+        # named, with the call that reads them.
+        kept, rest, size = [], [], 0
+        for r in out:
+            n = len(r["payload_json"]) + 200
+            if kept and size + n > self.PROPOSALS_PAGE_CHARS:
+                rest.append(r["agent"]); continue
+            kept.append(r); size += n
+        res = {"_db": "audit.db", "rows": kept, "agents_in_run": sorted({r["agent"] for r in rows})}
+        if rest:
+            res["not_included"] = rest
+            res["note_paging"] = (f"{len(rest)} proposal(s) did not fit in this result: {rest}. Call read_proposals again with "
+                                  f"agents={rest[:1]} (one per call) to read each one in full.")
         if note:
             res["note"] = note
         return res
