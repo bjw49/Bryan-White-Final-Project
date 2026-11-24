@@ -746,7 +746,16 @@ def build_report(ctx: dict) -> str:
     elif pi.get("baseline_elapsed"):
         rows.append(("Turnaround today for the same first draft (elapsed, not effort)", e(pi["baseline_elapsed"]), e(pi.get("baseline_basis") or "pilot estimate")))
         rows.append(("Turnaround with the app, including human review", f"{float(app_m or 0):g} minutes to a decision plus {float(rev_m or 0):g} minutes of review", "pilot, timed"))
-        rows.append(("Analyst effort saved", "Not measured: the pilot estimated calendar time, which is mostly waiting for meetings, not hours of work, so no dollar saving is claimed", ""))
+        ab = pilot.get("author_baseline") or {}
+        if ab.get("low_hours"):
+            used = (float(app_m or 0) + float(rev_m or 0)) / 60
+            lo, hi = float(ab["low_hours"]) - used, float(ab["high_hours"]) - used
+            rows.append(("Analyst effort for a comparable first draft today", f"{ab['low_hours']:g} to {ab['high_hours']:g} hours of work",
+                         e(ab.get("basis", "author's estimate"))))
+            rows.append(("Effort saved per draft", f"about {lo:,.0f} to {hi:,.0f} hours, roughly ${round(lo * rate, -3):,.0f} to ${round(hi * rate, -3):,.0f} at "
+                         f"{usd(rate, 0)}/hour (a stated estimate); an upper bound, since the team still checks the draft and runs due diligence", "computed"))
+        else:
+            rows.append(("Analyst effort saved", "Not measured: the pilot estimated calendar time, which is mostly waiting for meetings, not hours of work, so no dollar saving is claimed", ""))
     else:
         rows.append(("Analyst time for the same first draft today", todo("pilot.json baseline_hours and baseline_basis (your own estimate for a 4-class manager short-list plus allocation memo, or a timed attempt)"), ""))
     rows.append(("Quality: every claim traceable", "Uncited findings are dropped by code; every number is a tool result with an evidence id", "Safety tests"))
@@ -901,6 +910,9 @@ def build_slides(ctx: dict) -> str:
     elif pe.get("baseline_elapsed"):
         imp.append(f"<li>Pilot: today {e(pe['baseline_elapsed'])} elapsed for a comparable first draft; with the app "
                    f"{e(pe.get('with_app_minutes'))} minutes to a decision plus {e(pe.get('review_minutes'))} minutes of review</li>")
+        ab = pilot.get("author_baseline") or {}
+        if ab.get("low_hours"):
+            imp.append(f"<li>Effort today: {ab['low_hours']:g} to {ab['high_hours']:g} hours of committee work per draft (author's estimate); with the app, under an hour</li>")
     else:
         imp.append(f"<li>Today: {todo('baseline hours')}</li>")
     q = (pilot.get("pilot") or {}).get("quote")

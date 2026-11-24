@@ -30,5 +30,10 @@
     "who": "The author (no peer was available)",
     "minutes_to_running": 8,
     "notes": "Fresh clone of commit 0e30d30 into a new folder, following the README: all 9 test files passed, and 8 minutes after git clone a live committee run had finished. Windows Application Control on the author's laptop blocked a newly downloaded SciPy file, so the tests and the run used the author's existing environment with the same package versions. The run was stopped by the Red Team coverage check, which exposed a flaw in how code moved weight after a cap; it was fixed afterwards (Section 4, batch 7)."
+  },
+  "author_baseline": {
+    "low_hours": 150,
+    "high_hours": 230,
+    "basis": "author's estimate from experience, for four asset classes: CIO 5 hours (objective, review); each asset-class head 20 hours if experienced, 40 if junior; asset allocation and risk 5 hours plus 5 per asset class; red team 10 per asset class"
   }
 }
