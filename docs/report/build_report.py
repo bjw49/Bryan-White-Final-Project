@@ -533,7 +533,9 @@ def build_report(ctx: dict) -> str:
                "<tr><td><b>Investment consultants</b> (e.g. Mercer, Aon, Callan)</td><td>Experienced manager research, ODD, relationships</td>"
                "<td>Expensive, weeks per search, opaque reasoning; one view, no standing red team</td></tr>"
                "<tr><td><b>General chatbots</b> (ChatGPT, Claude)</td><td>Fluent analysis of pasted data</td>"
-               "<td>No access control, does arithmetic in text, invents figures, no audit trail, no budget or escalation rules</td></tr>"
+               "<td>Strong analysis (they now run code for the arithmetic), but not built for an institution's data: data security and control "
+               "(what leaves the firm, who can see which data), no information barriers between roles, no audit trail of which source backs "
+               "each number, no standing dissent, and no budget or stop rules</td></tr>"
                "<tr><td><b>Open-source agent “trading firms”</b> (TradingAgents, ai-hedge-fund)</td><td>Multi-agent debate on single stocks</td>"
                "<td>Built for trading one ticker, research only; not the asset-owner workflow (policy, allocation, external managers, governance)</td></tr></table>")
     out.append("<p><b>What this project does differently.</b></p><ol>"
@@ -552,7 +554,13 @@ def build_report(ctx: dict) -> str:
                "(only for a policy fact only the owner can give) and DO_NOT_RECOMMEND. Before the run, the ACIO asks the owner up to three clarifying questions "
                "when the description leaves a policy fact open.</li>"
                "<li><b>Real public inputs.</b> CMAs from seven houses, extracted with page references and graded per class; the market breakeven inflation curve "
-               "(10-year 2.34%, 31 October 2026) turns nominal expected returns into the real return the owner's target is stated in, in code.</li></ol>")
+               "(10-year 2.34%, 31 October 2026) turns nominal expected returns into the real return the owner's target is stated in, in code.</li>"
+               "<li><b>Neutral about data providers.</b> Every number reaches the agents through one gateway, so data from several providers "
+               "(manager databases, CMA publishers, the owner's own records) can sit behind it and be swapped for the best available source, "
+               "rather than tying the owner to one vendor's universe. As a business, that neutrality matters: data providers may hesitate to "
+               "feed a platform owned by an asset manager that competes with their other clients (would a manager database share its data with "
+               "BlackRock's Aladdin?), and an independent committee layer avoids that conflict. This is the author's view of the market, not a "
+               "tested claim.</li></ol>")
     out.append("<p><b>Honest assessment.</b> The advantage is workflow and control, not secret alpha: the same model family powers every agent, so blind spots are "
                "correlated; the manager data are anonymised stand-ins; and nothing here replaces operational due diligence or a consultant's relationships. "
                "What it does better than the alternatives above is produce a transparent, reproducible, challengeable first draft of the committee decision, cheaply.</p>")
@@ -837,9 +845,9 @@ def build_slides(ctx: dict) -> str:
              "<tr><td>eVestment</td><td>Data and screens; its agent serves managers seeking capital</td></tr>"
              "<tr><td>Aladdin / eFront Copilot</td><td>Query assistant, no committee or decision</td></tr>"
              "<tr><td>Consultants</td><td>Weeks, expensive, one opaque view</td></tr>"
-             "<tr><td>ChatGPT / Claude</td><td>Does math in text, no access control or audit</td></tr>"
+             "<tr><td>ChatGPT / Claude</td><td>Strong analysis, but no data security, role barriers or audit trail for an institution's data</td></tr>"
              "<tr><td>TradingAgents</td><td>Trades one stock; not the asset-owner workflow</td></tr></table>"
-             "<p><b>ACIO</b>: owner policy &rarr; allocation &rarr; ranked, sized manager lineups &rarr; Red Team &rarr; memo. Code does the math, an information barrier separates roles, every claim cites a tool result, governance rules are enforced in code.</p></section>")
+             "<p><b>ACIO</b>: owner policy &rarr; allocation &rarr; ranked, sized manager lineups &rarr; Red Team &rarr; memo. Code does the math, an information barrier separates roles, every claim cites a tool result, governance rules are enforced in code, and one data gateway can sit over any provider's data.</p></section>")
     S.append("<section><h2>Built with the course stack</h2><table><tr><th>Layer</th><th>What it does here</th></tr>"
              "<tr><td>React + Vite + TypeScript</td><td>Chat with the ACIO, clarifying questions, live agent wire, decision and memo view</td></tr>"
              "<tr><td>FastAPI</td><td>Policy, clarify, run and job routes; access code; one run at a time when hosted</td></tr>"
