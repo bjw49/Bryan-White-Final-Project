@@ -499,22 +499,25 @@ def build_report(ctx: dict) -> str:
 
     # ---------------- 1 motivation
     out.append("<h2>1. Motivation</h2>")
-    out.append("<p><b>Who has the problem.</b> The people who decide where an institution's long-term money goes: the CIO and a handful of "
-               "investment staff at a pension plan, endowment, foundation or insurer that hires external managers. The author works in institutional "
-               "manager selection and asset allocation, and the app is built around the decisions that work makes every quarter.</p>")
-    out.append("<p><b>How they handle it now.</b> Two linked decisions are made by small teams with spreadsheets, a manager database and a consultant: "
-               "(1) the asset allocation, built from capital market assumptions (CMAs) that a dozen houses publish in long PDFs that disagree, and "
-               "(2) which external managers to hire in each asset class and in what size, from return histories and marketing descriptions. "
-               "The work is repetitive (pull returns, compute statistics against the benchmark, compare peers, write the memo), slow (a single "
-               "manager search runs for weeks to months), and fragile in ways that are well documented: picking on trailing returns, under-weighting "
-               "the multiple-testing problem when ten candidates are compared, and committee dynamics that rarely produce a formal dissent.</p>")
-    out.append("<p><b>What it costs.</b> Staff time, consultant retainers and, above all, decision quality. A manager hired on a lucky record costs "
-               "fees and underperformance for years. Smaller owners feel it most: of roughly 149,000 US private foundations (Cause IQ directory), most report "
-               "no staff or under ten employees, yet foundation assets total about $1.8 trillion (FoundationMark, 2025). These owners rarely have an "
-               "investment committee process at all.</p>")
-    out.append("<p><b>Why it matters.</b> The money pays pensions, scholarships and grants. A transparent, repeatable first draft of the committee's "
-               "work, with every number traceable to data and a built-in devil's advocate, lets a small team spend its time on judgment instead of "
-               "assembly, and lets a large team test more owner scenarios than it could by hand.</p>")
+    out.append("<p><b>Who has the problem.</b> Investment teams at institutions that hire external managers: pension plans, endowments, "
+               "foundations, insurers and other asset owners. Some teams are a handful of people, some are large, but all of them make the same two "
+               "linked decisions: the asset allocation, and which external managers to hire in each asset class and in what size. The author works "
+               "in institutional manager selection and asset allocation, and the app is built around that work.</p>")
+    out.append("<p><b>How they handle it now.</b> Both decisions take significant time. The allocation is built from capital market assumptions "
+               "that a dozen houses publish in long reports that disagree. Manager selection means reading strategy descriptions, pulling return "
+               "histories, computing statistics against benchmarks and peers, and writing it all up for a committee. The manager universe is "
+               "extremely large (eVestment alone lists more than 27,500 institutional strategies; Section 2), so the work is never complete: a team "
+               "covers the managers it has time for, not every manager that could fit.</p>")
+    out.append("<p><b>What it costs.</b> Mostly time, and the time goes to the wrong place. Hours spent reading descriptions and analysing returns "
+               "are hours not spent meeting managers, which is where a team learns what the numbers cannot show: how the team thinks, whether "
+               "the process is real, what could break it. The analysis also has known weak spots: picking on trailing returns, comparing many "
+               "candidates without allowing for luck, and committees that rarely record a formal dissent.</p>")
+    out.append("<p><b>Why it matters, and what this project shows.</b> The money pays pensions, scholarships and grants, so better use of a "
+               "team's time is better stewardship. ACIO is a proof of concept: connect an investment team's databases of structured data "
+               "(returns, benchmarks, factors, capital market assumptions) and unstructured data (strategy descriptions) to a committee of AI "
+               "agents, and the team reviews a challenged, evidence-cited recommendation instead of assembling one, and spends more of its time "
+               "meeting managers. Smaller owners stand to gain most: about 149,000 US private foundations (Cause IQ directory), most with no "
+               "staff or fewer than ten employees, hold about $1.8 trillion (FoundationMark, 2025).</p>")
 
     # ---------------- 2 what is new
     out.append("<h2>2. What is new</h2>")
@@ -822,11 +825,11 @@ def build_slides(ctx: dict) -> str:
              "<p>An AI investment committee for pensions, endowments and foundations that hire external managers.</p>"
              f"<p class='mute'>{e(pilot.get('author', 'Bryan White'))} &middot; MGT 409 &middot; Yale SOM &middot; November 2026</p></section>")
     S.append("<section><h2>The problem</h2><ul>"
-             "<li>Two decisions drive an institution's long-term money: the <b>asset allocation</b> and <b>which external managers</b> to hire.</li>"
-             "<li>Small teams assemble them by hand: CMAs from a dozen PDFs, return statistics in spreadsheets, a memo. Weeks per manager search.</li>"
-             "<li>Known failure modes: hiring on lucky track records, ten candidates compared without a multiple-testing correction, no formal dissent.</li>"
-             "<li>~149,000 US private foundations hold ~$1.8T; most have 0 to 10 staff (Cause IQ; FoundationMark).</li>"
-             "<li>Built by a practitioner in institutional manager selection and allocation.</li></ul></section>")
+             "<li>Investment teams, small and large, at pensions, endowments, foundations and insurers that hire <b>external managers</b></li>"
+             "<li>Two linked decisions take most of their time: the <b>asset allocation</b> and <b>which managers to hire</b>, and in what size</li>"
+             "<li>The manager universe is huge (27,500+ institutional strategies on eVestment), so the work is never complete</li>"
+             "<li>Hours go to reading strategy descriptions and analysing returns, not to <b>meeting managers</b>, where the real insight is</li>"
+             "<li>Proof of concept: connect structured and unstructured data to an AI committee; the team reviews a challenged recommendation instead of building one</li></ul></section>")
     S.append("<section><h2>What is new</h2><table><tr><th>Option</th><th>Gap</th></tr>"
              "<tr><td>eVestment</td><td>Data and screens; its agent serves managers seeking capital</td></tr>"
              "<tr><td>Aladdin / eFront Copilot</td><td>Query assistant, no committee or decision</td></tr>"
