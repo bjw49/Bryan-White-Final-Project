@@ -138,7 +138,7 @@ def capture(run_dir: Path | None):
             time.sleep(3.0)
             pg.goto(f"http://127.0.0.1:{port}/"); pg.wait_for_timeout(1500)
             pg.screenshot(path=str(SHOTS / "chat_home.png"), clip={"x": 0, "y": 0, "width": 1440, "height": 900})
-            pg.locator("button.alt").first.click()
+            pg.locator("button.alt").nth(1).click()  # the pension example: the scripted model's policy is a pension
             pg.wait_for_selector("text=Decision:", timeout=90000); pg.wait_for_timeout(1500)
             pg.screenshot(path=str(SHOTS / "chat_run_mock.png"), full_page=True)
         finally:
@@ -259,7 +259,12 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "This affected every earlier batch: the Red Team saw the AAR in full but only part of the Heads' proposals. Fixed: "
      "read_proposals pages by size and names what it left out, the Red Team reads one proposal per call, and any over-cap "
      "result is marked truncated instead of cut silently."),
-    ("evidence_summary.md", "Batch 5 (submitted code)", "The measured evidence in Sections 4 and 6."),
+    ("evidence_summary.md", "Batch 5 (submitted code)",
+     "The measured evidence in Sections 4 and 6. The Red Team read every proposal in full, one per call, in every run. "
+     "One run stopped: after the coverage check sent its answer back, the ACIO's repair capped every manager in US "
+     "investment grade, leaving no manager to take the freed weight; the right repair was a lower class weight. The code "
+     "stopped it rather than invent an allocation. Left as a known limit: a second repair round, or letting code scale "
+     "the class down, would fix it."),
 ]
 
 
@@ -574,7 +579,7 @@ def build_report(ctx: dict) -> str:
             + ("." if (SHOTS / "chat_live.png").exists() else " (scripted stand-in shown)."), max_h=430),
         fig("run_wire.png", "Figure 3. The wire for the traced run: every message between agents, time-stamped.", "agent message log screenshot", max_h=430)))
     out.append(pair(
-        fig("run_top.png", "Figure 4. Run header: status, time against the 10-minute limit, tokens (cached share), cost, calls.", "live run dashboard screenshot (build with --shots after python -m app.evidence)"),
+        fig("run_top.png", "Figure 4. Run header: status, time against the 420-second budget, tokens (cached share), cost, calls.", "live run dashboard screenshot (build with --shots after python -m app.evidence)"),
         fig("run_timeline.png", "Figure 5. Stage timeline: the AAR and four Heads run in parallel, which keeps the run inside the limit.", "stage timeline screenshot")))
     out.append(pair(
         fig("run_alloc.png", "Figure 6. AAR proposal (with ranges) vs the ACIO's final, and the lineup the code computed.", "allocation screenshot", max_h=400),
@@ -619,7 +624,7 @@ def build_report(ctx: dict) -> str:
                    "also offers an explicit cache breakpoint; measured on the same committee run, it cached 23% of input against 58% for the provider's automatic "
                    "prefix caching, so automatic caching is the default (<code>AII_CACHE_MODE=explicit</code> restores the breakpoint).</li>"
                    "<li><b>Short core prompts, long references on demand.</b> Each agent gets a compiled core prompt; detailed doctrine stays out of context unless needed.</li>"
-                   "<li><b>Code instead of tokens.</b> Returns are never pasted into context for arithmetic; tools return statistics (rows capped at 120 by default, text at 6,000 characters, tool results at 14,000).</li>"
+                   "<li><b>Code instead of tokens.</b> Returns are never pasted into context for arithmetic; tools return statistics (rows capped at 120 by default, text at 6,000 characters, tool results at 14,000, or 24,000 for one proposal; a longer result is marked truncated, never cut silently).</li>"
                    "<li><b>Hard limits.</b> 4 model steps per agent (7 for the asset-class Heads, 6 for the ACIO), 2 follow-ups, a per-agent call budget, a 420 s time budget, a 3M-token and $1.00 per-run cap; "
                    "on the hosted app, one run at a time.</li></ol>")
         cmp_ = ctx.get("compare")

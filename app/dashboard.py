@@ -183,7 +183,7 @@ def index_page(runs: list[dict]) -> str:
                    f"<div class='note'>{len(live)} live &middot; {len(runs) - len(live)} mock</div></div>"
                    f"<div class='kpi'><div class='label'>Reached a decision</div><div class='big'>{len(done)}</div><div class='note'>{len(runs) - len(done)} stopped by a control (no recommendation)</div></div>"
                    f"<div class='kpi'><div class='label'>Avg live cost</div><div class='big'>{_usd(avg_cost) if avg_cost is not None else '-'}</div><div class='note'><a href='tokenomics.html'>tokenomics</a></div></div>"
-                   f"<div class='kpi'><div class='label'>Avg live time</div><div class='big'>{(f'{int(avg_t // 60)}:{int(avg_t % 60):02d}') if avg_t is not None else '-'}</div><div class='note'>limit 10:00</div></div></div>")
+                   f"<div class='kpi'><div class='label'>Avg live time</div><div class='big'>{(f'{int(avg_t // 60)}:{int(avg_t % 60):02d}') if avg_t is not None else '-'}</div><div class='note'>time budget 420 s</div></div></div>")
     body = (f"<h1>Investment decision runs</h1><p class='note'>Each run is one pass of the agent pipeline on one owner description. "
             f"Stopped runs ended before a recommendation (a budget, contract or integrity control fired); the reason is shown on the run page.</p>{summary}"
             f"<h2>Runs</h2>{table}<h2>Asset classes</h2><div class='cards'>{''.join(cards)}</div>")
@@ -287,7 +287,7 @@ def kpi_block(r: dict) -> str:
     share = f"{cached / prompt:.0%} of input cached" if prompt else "no input tokens"
     mock = "<p class='note'>Mock run: the scripted stand-in model uses no tokens, so tokens and cost are zero. Live runs record the counts the gateway reports.</p>" if tel.get("mock") else ""
     return (f"<div class='kpis k4'>"
-            f"<div class='kpi'><div class='label'>Elapsed</div><div class='big'>{mm:d}:{ss:02d}</div><div class='note'>limit 10:00 &middot; budget {int(tel.get('budgets', {}).get('time_s', 420))} s</div></div>"
+            f"<div class='kpi'><div class='label'>Elapsed</div><div class='big'>{mm:d}:{ss:02d}</div><div class='note'>time budget {int(tel.get('budgets', {}).get('time_s', 420))} s</div></div>"
             f"<div class='kpi'><div class='label'>Tokens</div><div class='big'>{int(tok.get('total', 0)):,}</div>"
             f"<div class='note'>input {prompt:,} ({share}) &middot; output {int(tok.get('completion', 0)):,}</div></div>"
             f"<div class='kpi'><div class='label'>Cost</div><div class='big'>{_usd(tel.get('cost_usd', 0))}</div><div class='note'>{'no model calls' if tel.get('mock') else e(tel.get('model', 'gpt-6-luna')) + ' at course prices'}</div></div>"
