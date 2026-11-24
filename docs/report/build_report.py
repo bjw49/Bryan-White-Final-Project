@@ -237,86 +237,50 @@ def SUBMITTED_NOTE() -> str:
     cur = {r["run_id"] for r in batch_rows("evidence_summary.md")}
     if cur and cur == b7:
         return (" apart from one later fix that acts only when the ACIO caps a manager (freed weight no longer goes to "
-                "another doubted manager; Section 3, batch 7)")
+                "another doubted manager; Section 4, batch 7)")
     b8 = {r["run_id"] for r in batch_rows("evidence_summary_batch8.md")}
     if cur and cur not in (b6, b7, b8):
         return ""
     if cur and cur == b8:
         return (" apart from one later fix that acts only when a Head's manager lists are inconsistent (code reconciles them; "
-                "Section 3, batch 8)")
+                "Section 4, batch 8)")
     if b6 and cur == b6:
         return (" apart from later fixes that act only on failures (a deadline on hung agents, a reserve of lineup checks "
                 "past the data budget, a clearer error for a class with no lineup, and a rule that an empty lineup must give an "
-                "accepted reason; Section 3, batch 6)")
+                "accepted reason; Section 4, batch 6)")
     return ""
 
-BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exposed, the fix before the next batch)
-    (None, "Manual live runs of the v3 rewrite (before batch 1)",
-     "The ACIO's read_proposals filter matched no rows because agents named each other loosely; the review check compared "
-     "against stale Head proposals after a revision; the model sometimes wrote text after its JSON answer; the US High Yield "
-     "Head ran out of turns; agents guessed parameter values. Fixed: an agent-name resolver, the check reads the latest "
-     "proposals, the JSON parser keeps the first object and flags the rest, a turn note and 7 steps for Heads, allowed values "
-     "in every tool schema. Each fix has a regression test."),
+BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, batch name, what it exposed and the fix)
+    (None, "Manual runs (before batch 1)",
+     "Agents could not find each other's proposals, the review compared stale proposals, the model wrote text after its JSON, "
+     "a Head ran out of turns. Fixed: name resolution, fresh reads, a tolerant parser, more steps, allowed values in every tool schema."),
     ("evidence_summary_batch1.md", "Batch 1",
-     "5 of 6 runs ended NEEDS_OWNER_INPUT. Reading the memos: the label was mis-specified (manager diligence questions were sent "
-     "to the owner), the 4% real target could not be checked without an inflation input, and the owner-type guardrails were "
-     "stated but not enforced. Fixed: labels defined by who must act, the market breakeven inflation curve (10-year 2.34%, "
-     "31 Oct 2026) with the real return computed in code, guardrails enforced in code with a named-waiver path."),
+     "Diligence questions were sent to the owner as NEEDS_OWNER_INPUT; a real-return target could not be checked without inflation; "
+     "guardrails were stated, not enforced. Fixed: labels by who must act, the breakeven inflation curve, guardrails enforced in code."),
     ("evidence_summary_batch2.md", "Batch 2",
-     "All 6 runs reached RECOMMEND_WITH_CONDITIONS. Reading each Red Team exchange exposed a governance gap: the ACIO accepted "
-     "objections about specific managers and then gave those managers more money by shifting weight into their class (table "
-     "below). Fixed: the ACIO can now cap or remove a manager in its answer to an objection, code applies it to the lineup, and "
-     "an accepted major objection cannot end with more money in what it targets."),
+     "The ACIO accepted objections about managers and then gave them more money (table below). Fixed: manager caps and removals, "
+     "and code refuses an accepted objection that ends with more money in its target."),
     ("evidence_summary_batch3.md", "Batch 3",
-     "The new rule held: the ACIO answered accepted objections by removing doubted managers, and no completed run broke it. "
-     "Two runs stopped for other reasons. In one, a stray closing brace in the ACIO's final answer pushed its findings outside "
-     "the JSON object, and the repair repeated the mistake; in the other, the provider's prompt screen rejected an ordinary "
-     "request (400 invalid_prompt). Fixed: the parser rejoins fields written after a stray brace (the result must still pass "
-     "the contract), and a prompt-screen rejection gets one retry."),
+     "The new rule held. Stops: a stray brace in the ACIO's answer, and a false-positive prompt flag from the provider. Fixed: the "
+     "parser rejoins the fields; a flagged request gets one retry."),
     ("evidence_summary_batch4.md", "Batch 4",
-     "No run stopped, and the ACIO capped or removed doubted managers in most runs. One repeat ended DO_NOT_RECOMMEND because "
-     "the Red Team said it could not audit the lineups. It was right: read_proposals returned all five proposals at once "
-     "(about 15,000 characters each) and the tool-result cap cut that to the first 14,000 characters without saying so. "
-     "This affected every earlier batch: the Red Team saw the AAR in full but only part of the Heads' proposals. Fixed: "
-     "read_proposals pages by size and names what it left out, the Red Team reads one proposal per call, and any over-cap "
-     "result is marked truncated instead of cut silently."),
+     "The Red Team said it could not audit the lineups, and it was right: tool results were cut at 14,000 characters without notice, "
+     "so in every earlier batch it saw only part of the Heads' proposals. Fixed: one proposal per call; any cut is marked."),
     ("evidence_summary_batch5.md", "Batch 5",
-     "The measured evidence in Sections 4 and 6. The Red Team read every proposal in full, one per call, in every run. "
-     "One run stopped: after the coverage check sent its answer back, the ACIO's repair capped every manager in US "
-     "investment grade, leaving no manager to take the freed weight; the right repair was a lower class weight. The code "
-     "stopped it rather than invent an allocation. Fixed afterwards (not in these runs): caps are a share of the class, so "
-     "the error now says to leave one manager uncapped or lower the class weight, and the ACIO's final decision gets a second "
-     "repair, because fixing one final-stage rule can trip another."),
+     "The ACIO capped every manager in a class, leaving nowhere for the freed weight. Fixed: an error that says how to repair it, "
+     "and a second repair for the final decision."),
     ("evidence_summary_batch6.md", "Batch 6",
-     "The measured evidence in Sections 4 and 6. The second repair from batch 5 saved a run: one endowment repeat needed it "
-     "(a coverage breach, then a malformed answer) and completed. One run stopped: the US equity Head spent its 60-call data "
-     "budget on per-manager statistics, was refused the lineup check, and, bound by the rule that every claim needs a tool "
-     "result, proposed no managers rather than an unmeasured lineup; the ACIO kept 40% in US equity through both repairs. "
-     "A first attempt at this batch hung for 16 minutes, because the time budget was checked only before each model call. "
-     "Fixed afterwards (scripted tests only): a deadline on every agent (budget plus 60 seconds), a reserve of 8 lineup "
-     "checks past the data budget, an error telling the ACIO to move weight out of a class with no lineup, and a contract "
-     "rule that an empty lineup must give its reason, where the only accepted reason is that no manager is defensible on "
-     "the evidence; a measurement gap must become a proposed lineup with flagged open items, and an empty lineup from a "
-     "Head that ran out of data calls is sent back."),
+     "The second repair saved a run. One run hung 16 minutes; a Head that ran out of data calls proposed no managers. Fixed: a "
+     "deadline on every agent, a reserve for the lineup check, and an empty lineup must give an accepted reason."),
     ("evidence_summary_batch7.md", "Batch 7",
-     "All six runs completed, with the batch 6 fixes. Fixed afterwards (scripted tests only), from "
-     "the fresh-clone run in Section 6: when one objection named two managers and the ACIO capped one, code moved the freed "
-     "weight into the other, which then breached the coverage rule on every repair (in this batch one run needed both repairs "
-     "for the same reason, and completed). Freed weight now goes only to managers not named in an objection the ACIO accepted."),
+     "All six completed. The fresh-clone run (Section 7) showed a cap pushing weight into another doubted manager. Fixed: freed "
+     "weight goes only to managers not in doubt."),
     ("evidence_summary_batch8.md", "Batch 8",
-     "The measured evidence in Sections 4 and 6, on the code as submitted. One run stopped at the start: the US investment-grade "
-     "Head's proposal failed its contract twice (its ranking did not list exactly the managers it selected and rejected), so the "
-     "run stopped before any allocation. Several Heads needed a repair for listing a manager twice; the repair fixed each. "
-     "Fixed afterwards (scripted tests only): code reconciles the Heads' lists before the contract check (duplicates removed, a "
-     "selected manager taken out of not selected, a ranked manager missing from both lists added to not selected, tied ranks "
-     "renumbered in order) and flags it; the ranking order, the selection and the weights are never changed, and a real gap, "
-     "such as a selected manager missing from the ranking, still fails."),
+     "A Head's three manager lists contradicted each other twice and the run stopped. Fixed: code reconciles the lists, never the "
+     "ranking order, selection or weights."),
     ("evidence_summary.md", "Batch 9 (submitted code)",
-     "The measured evidence in Sections 4 and 6, on the code as submitted. No run stopped. The list reconciliation from batch 8 "
-     "worked live (a Head listed a manager twice; code removed the duplicate and flagged it), and the coverage check sent two "
-     "ACIO answers back once each, both fixed. The foundation run ended NEEDS_OWNER_INPUT, which is the label working as designed: "
-     "the brief does not say whether its 4% real objective is before or after the 6% payout, or whether its 30% loss tolerance "
-     "is a hard limit, and the ACIO asked the owner rather than guess, while still giving a provisional mix."),
+     "No run stopped. The list reconciliation worked live. The foundation run asked the owner whether its 4% real target is before "
+     "or after its 6% payout: NEEDS_OWNER_INPUT working as designed."),
 ]
 
 
@@ -359,12 +323,12 @@ def live_testing_html(runs: list[dict]) -> str:
             t = mmss(sum(r["elapsed_s"] for r in b) / len(b)); cost = usd(sum(r["cost_usd"] for r in b) / len(b))
         else:
             res, t, cost = "development runs", "", ""
-        rows.append(f"<tr><td>{e(name)}</td><td class='n'>{len(b) or ''}</td><td>{e(res)}</td><td class='n'>{t}</td><td class='n'>{cost}</td><td>{e(what)}</td></tr>")
+        rows.append(f"<tr><td>{e(name)}</td><td>{e(res)}</td><td>{e(what)}</td></tr>")
     return ("<h3>What live testing changed</h3><p>Every model run below was live. The scripted tests prove the code does what it says; only "
             "live runs show what the model actually does. Each batch of <code>python -m app.evidence</code> (3 owner briefs, 2 repeats, 1 "
-            "cost comparison) was read run by run, and what it exposed was fixed and covered by a new regression test before the next batch.</p>"
-            "<table><tr><th style='width:14%'>Batch</th><th class='n'>Runs</th><th style='width:17%'>Outcomes</th><th class='n'>Mean time</th>"
-            "<th class='n'>Mean cost</th><th>What it exposed, and the fix</th></tr>" + "".join(rows) + "</table>")
+            "cost comparison) was read run by run, and what it exposed was fixed and covered by a new regression test before the next batch. "
+            "Every fix was then tested live by the batch after it.</p>"
+            "<table><tr><th style='width:13%'>Batch (6 runs each)</th><th style='width:19%'>Outcomes</th><th>What it exposed, and the fix</th></tr>" + "".join(rows) + "</table>")
 
 
 MID_RE, CID_RE = r"\b(?:UE|IE|IG|HY)\d{2}\b", r"\b(US_EQ|INTL_EQ|US_IG|US_HY|CASH)\b"
@@ -409,8 +373,9 @@ def coverage_html() -> str:
     for r in b2:
         br = coverage_breaches(ROOT / "output" / r["run_id"])
         n_bad += bool(br)
-        rows.append(f"<tr><td>{e(r['label'])}</td><td>" + ("; ".join(f"{e(x['objection'])} {e(x['response'].lower().replace('_', ' '))} on "
-                    f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) or "none") + "</td></tr>")
+        if br:
+            rows.append(f"<tr><td>{e(r['label'])}</td><td>" + "; ".join(f"{e(x['objection'])} {e(x['response'].lower().replace('_', ' '))} on "
+                        f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) + "</td></tr>")
     after = ""
     ids2 = {x["run_id"] for x in b2}
     b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md", "evidence_summary_batch7.md", "evidence_summary_batch8.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
@@ -431,10 +396,10 @@ def coverage_html() -> str:
             "investment grade, where the doubted managers sat. At the final decision, the ACIO had no way to resize a manager: code builds "
             "the lineup from the Heads' weights, and the follow-up questions that let a Head revise its lineup are only available in the "
             "earlier review, before the Red Team reports. Its accepted objections could only become text. The fix (manager caps and "
-            "removals applied by code) is the simple version; Section 7 describes the fuller one. The table is a retro-check of the saved batch-2 runs "
+            "removals applied by code) is the simple version; Section 8 describes the fuller one. The table is a retro-check of the saved batch-2 runs "
             "against the rule now in code; the same pattern appeared in a run on the hosted app.</p>"
             "<table><tr><th style='width:22%'>Batch 2 run</th><th>Accepted objection, then more money in its target</th></tr>"
-            + "".join(rows) + "</table>" + after)
+            + "".join(rows) + f"</table><p class='small'>The other {len(b2) - n_bad} batch-2 runs had no such breach.</p>" + after)
 
 
 def consistency_html() -> str:
@@ -448,8 +413,10 @@ def consistency_html() -> str:
             continue
         rng = c.get("class_weight_range_pts", {})
         dec = sorted(set((c.get("decisions") or {}).values()))
-        rows.append((name, f"<tr><td>{name}</td><td>{e(', '.join(dec))}</td><td class='n'>{c.get('portfolio_in_common_pct', 0):.1f}%</td>"
-                     f"<td class='n'>{max(rng.values()) if rng else 0:g} pts</td><td>{e(', '.join(f'{k} {v:g}' for k, v in rng.items()))}</td></tr>", c.get("runs")))
+        short = {"RECOMMEND_WITH_CONDITIONS": "with conditions", "NEEDS_OWNER_INPUT": "owner input", "DO_NOT_RECOMMEND": "do not recommend",
+                 "RUN_STOPPED": "stopped", "RECOMMEND": "recommend"}
+        rows.append((name, f"<tr><td>{name}</td><td>{e(', '.join(short.get(d, d) for d in dec))}</td><td class='n'>{c.get('portfolio_in_common_pct', 0):.1f}%</td>"
+                     f"<td class='n'>{max(rng.values()) if rng else 0:g}</td><td>{e(' · '.join(f'{k} {v:g}' for k, v in rng.items()))}</td></tr>", c.get("runs")))
     if not rows:
         return ""
     pcts = [float(r[1].split("class='n'>")[1].split("%")[0]) for r in rows]
@@ -457,8 +424,8 @@ def consistency_html() -> str:
             "the runs hold identically (pairwise, manager positions only) and how far class weights move. The model is not deterministic: "
             f"across batches the runs held between {min(pcts):.0f}% and {max(pcts):.0f}% of the portfolio in common, and class weights moved "
             "by up to 10 points. The asset allocation is the more stable part; the satellite managers change from run to run. A human CIO "
-            "should treat one run as one committee's draft, and running the same brief two or three times shows which choices are robust.</p><table><tr><th>Batch</th><th>Decisions</th><th class='n'>Portfolio in common</th>"
-            "<th class='n'>Widest class range</th><th>Class weight range across the 3 runs (points)</th></tr>" + "".join(r[1] for r in rows) + "</table>")
+            "should treat one run as one committee's draft, and running the same brief two or three times shows which choices are robust.</p><table><tr><th style='width:9%'>Batch</th><th style='width:24%'>Decisions</th><th class='n' style='width:13%'>Portfolio in common</th>"
+            "<th class='n' style='width:12%'>Widest move (pts)</th><th>Class weight range across the 3 runs (points)</th></tr>" + "".join(r[1] for r in rows) + "</table>")
 
 
 # --------------------------------------------------------------------------- report
@@ -517,7 +484,7 @@ def build_report(ctx: dict) -> str:
            "allocation, a ranked and sized manager lineup and a decision memo for the human CIO, in a few minutes, for cents.</div>"]
 
     # ---------------- 1 motivation
-    out.append("<h2>1. Motivation</h2>")
+    out.append("<h2>2. Motivation</h2>")
     out.append("<p><b>Who has the problem.</b> Investment teams at institutions that hire external managers: pension plans, endowments, "
                "foundations, insurers and other asset owners. Some teams are a handful of people, some are large, but all of them make the same two "
                "linked decisions: the asset allocation, and which external managers to hire in each asset class and in what size. The author works "
@@ -525,7 +492,7 @@ def build_report(ctx: dict) -> str:
     out.append("<p><b>How they handle it now.</b> Both decisions take significant time. The allocation is built from capital market assumptions "
                "that a dozen houses publish in long reports that disagree. Manager selection means reading strategy descriptions, pulling return "
                "histories, computing statistics against benchmarks and peers, and writing it all up for a committee. The manager universe is "
-               "extremely large (eVestment alone lists more than 27,500 institutional strategies; Section 2), so the work is never complete: a team "
+               "extremely large (eVestment alone lists more than 27,500 institutional strategies; Section 3), so the work is never complete: a team "
                "covers the managers it has time for, not every manager that could fit.</p>")
     out.append("<p><b>What it costs.</b> Money and time. Many owners pay investment consultants to do part of this work, and the bill runs from "
                "hundreds of thousands of dollars a year to millions: CalPERS, the largest US public pension, listed annual consulting contracts of "
@@ -542,7 +509,7 @@ def build_report(ctx: dict) -> str:
                "staff or fewer than ten employees, hold about $1.8 trillion (FoundationMark, 2025).</p>")
 
     # ---------------- 2 what is new
-    out.append("<h2>2. What is new</h2>")
+    out.append("<h2>3. What is new</h2>")
     out.append("<table><tr><th>Existing option</th><th>What it does well</th><th>What it does not do</th></tr>"
                "<tr><td><b>Nasdaq eVestment</b> (manager database; asset owner research tools; an agentic “Next Best Action” agent built with Snowflake)</td>"
                "<td>The industry manager universe (27,500+ institutional strategies), peer screens, analytics</td>"
@@ -585,7 +552,7 @@ def build_report(ctx: dict) -> str:
                "What it does better than the alternatives above is produce a transparent, reproducible, challengeable first draft of the committee decision, cheaply.</p>")
 
     # ---------------- 3 agents
-    out.append("<h2>3. The agents</h2>")
+    out.append("<h2>4. The agents</h2>")
     out.append(f"<figure>{diagram(False)}<figcaption>Figure 1. Organisation and flow. Amber: ACIO instructions; green: asset-class heads; red: challenge and escalation. "
                "The data gateway sits between every agent and the data.</figcaption></figure>")
     out.append("<table><tr><th>Agent (cast name)</th><th>Role</th><th>Tools (all run in code)</th><th>Cannot</th></tr>"
@@ -601,7 +568,7 @@ def build_report(ctx: dict) -> str:
                "<td>read-only versions of all analytic tools, stress test, read proposals (reasoning stripped)</td><td>publish anything or see the authors' arguments</td></tr></table>")
     out.append("<p><b>Why this organisation.</b> This is how many institutional investment teams operate, and it separates duties the way their committees do: allocation is decided without looking at managers (so a favourite manager "
                "cannot drive the mix), each head is a specialist with a defensible scope, and dissent is a standing role rather than an accident. Running the AAR and "
-               "four heads in parallel keeps a full run to a few minutes (Section 4). The pipeline is deterministic code; agents decide only within their stage.</p>")
+               "four heads in parallel keeps a full run to a few minutes (Section 5). The pipeline is deterministic code; agents decide only within their stage.</p>")
     out.append("<p><b>Stack.</b> A React + Vite + TypeScript front end (the build is committed, so users need no Node) talks to a FastAPI back end. "
                "Each agent runs in a PydanticAI agent loop: a small custom PydanticAI <code>Model</code> routes every call through the app's own client, so the "
                "time, token, cost and step budgets are checked in code before each model call, and every tool is a fixed gateway function with a typed schema. "
@@ -610,7 +577,7 @@ def build_report(ctx: dict) -> str:
                "the model budget). The earlier hand-written loop and the Chat Completions route are kept behind switches (<code>AII_LOOP=legacy</code>, "
                "<code>AII_API=chat</code>) and the test suite passes on both.</p>")
     out.append("<p><b>Model.</b> All agents use <code>gpt-6-luna</code>, the course model, through the OpenAI Responses API. At $0.10 / $0.01 / $0.50 per million input, "
-               "cached and output tokens it is one twentieth of the price of gpt-6.1-sol for the same tokens (Section 4). Because the statistics are in code, "
+               "cached and output tokens it is one twentieth of the price of gpt-6.1-sol for the same tokens (Section 5). Because the statistics are in code, "
                "the agents need judgment and reading, not arithmetic. Reasoning effort is set to <code>none</code> to keep runs fast and cheap. "
                "The cost of one model family for every role is correlated blind spots; the mitigations are separate contexts, stripped reasoning for the "
                "Red Team, and rules enforced in code rather than asked for in prompts.</p>")
@@ -648,23 +615,17 @@ def build_report(ctx: dict) -> str:
     out.append(pair(
         fig("chat_live.png" if (SHOTS / "chat_live.png").exists() else "chat_run_mock.png",
             "Figure 2. Chat: the ask, the inferred policy, then the live wire of agent messages with clock, tokens and cost"
-            + ("." if (SHOTS / "chat_live.png").exists() else " (scripted stand-in shown)."), max_h=430),
-        fig("run_wire.png", "Figure 3. The wire for the traced run: every message between agents, time-stamped.", "agent message log screenshot", max_h=430)))
+            + ("." if (SHOTS / "chat_live.png").exists() else " (scripted stand-in shown)."), max_h=260),
+        fig("run_wire.png", "Figure 3. The wire for the traced run: every message between agents, time-stamped.", "agent message log screenshot", max_h=260)))
     out.append(pair(
-        fig("run_top.png", "Figure 4. Run header: status, time against the 420-second budget, tokens (cached share), cost, calls.", "live run dashboard screenshot (build with --shots after python -m app.evidence)"),
-        fig("run_timeline.png", "Figure 5. Stage timeline: the AAR and four Heads run in parallel, which keeps the run inside the limit.", "stage timeline screenshot")))
-    out.append(pair(
-        fig("run_alloc.png", "Figure 6. AAR proposal (with ranges) vs the ACIO's final, and the lineup the code computed.", "allocation screenshot", max_h=400),
-        fig("run_redteam.png", "Figure 7. Red Team objections and the ACIO's recorded response to each.", "Red Team screenshot", max_h=400)))
-    out.append(pair(
-        fig("class_us_eq.png", "Figure 8. Asset-class page: selected managers with weights and rationale; next-best managers and why not.", "class page screenshot", max_h=400),
-        fig("audit_summary.png", "Figure 9. Plain-language audit summary for the run; the full trace keeps every prompt, tool call and result.", "audit summary screenshot", max_h=400)))
+        fig("run_alloc.png", "Figure 4. AAR proposal (with ranges) vs the ACIO's final, and the lineup the code computed.", "allocation screenshot", max_h=260),
+        fig("run_redteam.png", "Figure 5. Red Team objections and the ACIO's recorded response to each.", "Red Team screenshot", max_h=260)))
 
     # ---------------- 4 tokenomics
-    out.append("<h2>4. Tokenomics</h2>")
+    out.append("<h2>5. Tokenomics</h2>")
     if have_tok:
         out.append(f"<p>Measured on the final batch of <b>{tok['n_runs']} live runs</b> of {e(tok['model'])} ({tok['n_completed']} reached a decision; averages use those), "
-                   f"run on the submitted code{SUBMITTED_NOTE()}. The {tok.get('n_all_live_runs', tok['n_runs']) - tok['n_runs']} earlier development runs (Section 3) are excluded because the code changed after them. "
+                   f"run on the submitted code{SUBMITTED_NOTE()}. The {tok.get('n_all_live_runs', tok['n_runs']) - tok['n_runs']} earlier development runs (Section 4) are excluded because the code changed after them. "
                    f"Token counts are what the gateway reported per call (prompt, cached prompt, completion), recorded in each run's <code>telemetry.json</code>. "
                    f"Prices: {e(tok['price_source'])}.</p>")
         out.append("<div class='kpis'>" +
@@ -672,21 +633,23 @@ def build_report(ctx: dict) -> str:
                    f"<div class='kpi'><b>{pr['total']:,.0f}</b><span>tokens per run: {pr['input']:,.0f} in, {pr['output']:,.0f} out</span></div>"
                    f"<div class='kpi'><b>{pr['cache_share']:.0%}</b><span>of input tokens served from cache</span></div>"
                    f"<div class='kpi'><b>{mmss(pr['elapsed_s'])}</b><span>mean time per run (max {mmss(pr['elapsed_s_max'])})</span></div></div>")
+        out.append(fig("run_top.png", "Figure 6. The app shows each run's tokens (with the cached share), cost and time against the 420-second budget; this is the traced run.", "run header screenshot", max_h=170))
         rows = "".join(f"<tr><td>{e(r['label'] or '')}</td><td>{e(r['status'])}</td><td class='n'>{mmss(r['elapsed_s'])}</td><td class='n'>{r['calls']}</td>"
                        f"<td class='n'>{r['prompt']:,}</td><td class='n'>{r['cached']:,}</td><td class='n'>{r['completion']:,}</td><td class='n'>{usd(r['cost_usd'])}</td></tr>" for r in tok["runs"])
         out.append("<table><tr><th>Run</th><th>Status</th><th class='n'>Time</th><th class='n'>Calls</th><th class='n'>Input</th><th class='n'>Cached input</th><th class='n'>Output</th><th class='n'>Cost</th></tr>" + rows + "</table>")
         names = {"acio": "ACIO", "aar": "Asset Allocation & Risk", "head_us_eq": "Head, US Equity", "head_intl_eq": "Head, Intl Equity",
                  "head_us_ig": "Head, US IG", "head_us_hy": "Head, US High Yield", "red_team": "Red Team"}
-        ag = "".join(f"<tr><td>{e(names.get(a, a))}</td><td class='n'>{v['calls']:.1f}</td><td class='n'>{v['input']:,.0f}</td><td class='n'>{v['cached']:,.0f}</td><td class='n'>{v['output']:,.0f}</td><td class='n'>{usd(v['cost_usd'])}</td></tr>"
-                     for a, v in sorted(tok["by_agent_mean"].items(), key=lambda kv: -kv[1]["cost_usd"]))
-        out.append("<h3>Where the tokens go (mean per completed run)</h3><table><tr><th>Agent</th><th class='n'>Calls</th><th class='n'>Input</th><th class='n'>Cached</th><th class='n'>Output</th><th class='n'>Cost</th></tr>" + ag + "</table>")
+        top = sorted(tok["by_agent_mean"].items(), key=lambda kv: -kv[1]["cost_usd"])
+        out.append("<p><b>Where the tokens go.</b> Mean cost per completed run, by agent: " + "; ".join(
+            f"{e(names.get(a, a))} {usd(v['cost_usd'])} ({v['calls']:.0f} calls)" for a, v in top) +
+            ". The ACIO costs most because it reads every proposal and the Red Team report and writes the memo.</p>")
         sc = tok["scale"]
         out.append(f"<h3>Per user and at scale</h3><p>Assumption (stated): one user is one investment professional who runs <b>{tok['runs_per_user_month']:g}</b> committee runs a month "
                    f"(a manager search or allocation review needs several owner scenarios and re-runs). Model cost per user per month: <b>{usd(tok['per_user_month_usd'], 2)}</b>.</p>"
                    "<table><tr><th class='n'>Users</th><th class='n'>Runs per month</th><th class='n'>Model cost per month</th><th class='n'>Per year</th></tr>" +
                    "".join(f"<tr><td class='n'>{v['users']:,}</td><td class='n'>{v['runs_per_month']:,.0f}</td><td class='n'>{usd(v['model_cost_month'], 2)}</td><td class='n'>{usd(v['model_cost_year'], 2)}</td></tr>" for v in sc.values()) +
                    "</table><p class='small'>Model cost only. At 10,000 users the app would be hosted: a modest always-on server and database are a stated estimate of a few hundred dollars a month, "
-                   "small next to the model bill, and authentication and per-tenant data isolation would be required (Section 7). The class demo runs on Render's free tier.</p>")
+                   "small next to the model bill, and authentication and per-tenant data isolation would be required (Section 8). The class demo runs on Render's free tier.</p>")
         om = tok["same_tokens_other_models"]
         out.append("<h3>Cost-reduction steps and their effect</h3><ol>"
                    f"<li><b>Model choice.</b> The same tokens would cost {usd(om.get('gpt-6.1-sol'))} per run on gpt-6.1-sol and {usd(om.get('gpt-6-astra'))} on gpt-6-astra, "
@@ -711,16 +674,15 @@ def build_report(ctx: dict) -> str:
         out.append(f"<p>{todo('live runs: python -m app.evidence, then rebuild this report')}. Until then the dashboard records zero tokens for scripted runs, by design.</p>")
 
     # ---------------- 5 safety
-    out.append("<h2>5. Safety</h2>")
+    out.append("<h2>6. Safety</h2>")
     if sf:
         res = sf["results"]; n = sum(r["passed"] for r in res)
         out.append(f"<p><code>python -m app.safety</code> runs {len(res)} scenarios against the real gateway, orchestrator and contracts (the scripted model plays the attacker "
                    f"or the faulty agent; the code's response is the same in live runs). <b>{n} of {len(res)} defences held</b> on {e(sf['generated_utc'])}. "
                    "The same scenarios run in the test suite (<code>tests/test_safety.py</code>).</p>")
-        out.append("<table><tr><th style='width:13%'>Area</th><th style='width:33%'>Risk tested</th><th>Built defence</th><th style='width:8%'>Result</th></tr>" +
-                   "".join(f"<tr><td>{e(r['area'])}</td><td>{e(r['attack'])}</td><td>{e(r['defence'])}</td>"
+        out.append("<table><tr><th style='width:38%'>Risk tested</th><th>Built defence</th><th style='width:8%'>Result</th></tr>" +
+                   "".join(f"<tr><td><b>{e(r['area'])}:</b> {e(r['attack'])}</td><td>{e(r['defence'])}</td>"
                            f"<td><b style='color:{'#127a4f' if r['passed'] else '#b3123a'}'>{'HELD' if r['passed'] else 'FAILED'}</b></td></tr>" for r in res) + "</table>")
-        out.append(fig("safety.png", "Figure 10. The Safety page in the app: each scenario, the defence, the result and what the code returned (for example the injection flag on a planted manager document and the escalation record when the token budget is hit).", "safety page screenshot", max_h=380))
     else:
         out.append(f"<p>{todo('python -m app.safety')}</p>")
     inj = load(ROOT / "output" / "injection_live.json")
@@ -738,7 +700,7 @@ def build_report(ctx: dict) -> str:
                "family, so a blind spot can be shared.</div>")
 
     # ---------------- 6 impact
-    out.append("<h2>6. Impact</h2>")
+    out.append("<h2>7. Impact</h2>")
     base_h = pi.get("baseline_hours"); app_m = pi.get("with_app_minutes"); rev_m = pi.get("review_minutes")
     rate = float(pilot.get("analyst_cost_per_hour_usd") or 150)
     out.append("<h3>Real user trial</h3>")
@@ -787,12 +749,12 @@ def build_report(ctx: dict) -> str:
         out.append(f"<p><b>Fresh-clone test.</b> {todo('peer_fresh_clone in pilot.json: who, minutes to running')}</p>")
 
     # ---------------- 7 limits
-    out.append("<h2>7. Limits and next steps</h2>")
+    out.append("<h2>8. Limits and next steps</h2>")
     out.append("<p><b>What does not work yet.</b></p><ul>"
                "<li><b>Data.</b> Forty anonymised managers (ten per class) with altered return streams; benchmarks and factors without full documentation; CMAs differ in index, date and currency across houses, and international equity has only three direct estimates.</li>"
                "<li><b>Method.</b> Manager mixes are evaluated in-sample; the deflated Sharpe ratio needs an assumed number of trials; stress scenarios are calendar episodes; there is no liability model, so a pension's funded-status risk is described, not optimised.</li>"
                "<li><b>Agents.</b> One model family for all roles; reasoning effort none; quality is not scored against expert decisions. Repeat runs of one brief "
-               "share only about half to three quarters of their manager positions and move class weights by up to 10 points (Section 3), so one run is a draft, not an answer.</li>"
+               "share only about half to three quarters of their manager positions and move class weights by up to 10 points (Section 4), so one run is a draft, not an answer.</li>"
                "<li><b>Rules applied literally.</b> Agents follow their rules to the letter. When the data budget ran out, a Head "
                "proposed no managers rather than an unmeasured lineup, and the ACIO kept weight in that class anyway; when every manager "
                "in a class was capped, the ACIO had capped itself into a corner. Code now refuses these cases or says how to fix them, "
@@ -808,18 +770,17 @@ def build_report(ctx: dict) -> str:
                "<li>An active dialogue after the Red Team: when the ACIO accepts an objection about a manager, it reopens the discussion with "
                "that Head (and the Red Team), the Head revises its lineup, and the ACIO keeps final authority. Within this project's time, "
                "code-applied caps and removals were the simpler, testable route, so this was not built.</li>"
-               "<li>An evaluation set: owner profiles with expert answers, scored for agreement and run-to-run stability.</li>"
-               "<li>Budget-aware agents: each tool result shows the calls left, and Heads screen all ten managers in one call and "
-               "research a shortlist, as an analyst would; then live testing of the empty-lineup rule added tonight.</li>"
-               "<li>Upload of the owner's current policy and holdings so recommendations are changes from where the owner is, with turnover and transition cost.</li>"
-               "<li>A secure sandbox so proprietary data (licensed manager universes, consultant research, private funds) can be used; then hedge fund, private credit and private equity heads.</li>"
-               "<li>A pool of Red Team challengers (allocation, manager, model, data) and an independent risk officer (ACRO) as a second line.</li>"
-               "<li>Peer-to-peer consultation between specialist agents (capital markets, issuer research) with a logged prior-update for each, the “collective market intelligence” target design.</li>"
-               "<li>An MCP server over the data gateway, so the same read-only, budgeted tools can be used from other agent hosts.</li></ol>")
+               "<li>An evaluation set (owner profiles with expert answers, scored for agreement and run-to-run stability) and budget-aware "
+               "agents: each tool result shows the calls left, and Heads screen all ten managers in one call before researching a shortlist, "
+               "as an analyst would.</li>"
+               "<li>Upload of the owner's current policy and holdings, so recommendations are changes from where the owner is, with turnover "
+               "and transition cost.</li>"
+               "<li>A secure sandbox for proprietary data (licensed manager universes, consultant research, private funds), then hedge fund, "
+               "private credit and private equity Heads, a pool of Red Team challengers and an independent risk officer as a second line.</li></ol>")
     out.append("<p class='small'>Sources: Bailey and López de Prado (2014), The Deflated Sharpe Ratio, Journal of Portfolio Management; Nasdaq eVestment product pages and the "
                "Snowflake blog on eVestment's agent (May 2026); BlackRock eFront Copilot pages; TradingAgents (Xiao et al., arXiv 2412.20138); Cause IQ private foundation directory; "
                "FoundationMark via Financial Planning (2025); CalPERS Investment Committee agenda item 7a, December 2018 (consultant contract amounts); CMA reports from KKR, Invesco, Amundi, PGIM, Northern Trust, BNY and Nuveen (page references in <code>db/cma.db</code>); "
-               "MGT 409 lecture 11 for model prices. AI tools were used for drafting and coding; the author is responsible for every claim and number.</p>")
+               "MGT 409 lecture 11 (model prices). AI tools helped draft and code; the author is responsible for every claim and number.</p>")
     return f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>ACIO: Augmented Investment Intelligence (report)</title><style>{CSS}</style></head><body>{''.join(out)}</body></html>"
 
 
@@ -873,19 +834,12 @@ def build_slides(ctx: dict) -> str:
              "<tr><td>ChatGPT / Claude</td><td>Strong analysis, but no data security, role barriers or audit trail for an institution's data</td></tr>"
              "<tr><td>TradingAgents</td><td>Trades one stock; not the asset-owner workflow</td></tr></table>"
              "<p><b>ACIO</b>: owner policy &rarr; allocation &rarr; ranked, sized manager lineups &rarr; Red Team &rarr; memo. Code does the math, an information barrier separates roles, every claim cites a tool result, governance rules are enforced in code, and one data gateway can sit over any provider's data.</p></section>")
-    S.append("<section><h2>Built with the course stack</h2><table><tr><th>Layer</th><th>What it does here</th></tr>"
-             "<tr><td>React + Vite + TypeScript</td><td>Chat with the ACIO, clarifying questions, live agent wire, decision and memo view</td></tr>"
-             "<tr><td>FastAPI</td><td>Policy, clarify, run and job routes; access code; one run at a time when hosted</td></tr>"
-             "<tr><td>PydanticAI + Pydantic</td><td>Agent loop with budgets checked before every model call; every output validated against a contract and sent back with the errors</td></tr>"
-             "<tr><td>OpenAI Responses API</td><td>gpt-6-luna; automatic prompt caching (beat the explicit breakpoint, 58% vs 23% cached)</td></tr>"
-             "<tr><td>Render</td><td>Same app, one web service from render.yaml</td></tr></table></section>")
-    S.append(f"<section><h2>Seven agents, one committee</h2>{diagram(True)}</section>")
+    S.append(f"<section><h2>Seven agents, one committee</h2>{diagram(True)}"
+             "<p class='mute'>React + FastAPI + PydanticAI, OpenAI Responses API (gpt-6-luna), hosted on Render. Code does every calculation; agents cite tool results.</p></section>")
     shot = img("chat_live.png") or img("chat_run_mock.png")
     S.append("<section><h2>Demo: ask &rarr; committee &rarr; memo</h2><div class='two'>"
              f"<div>{shot or todo('chat screenshot')}</div><div>{img('run_top.png') or todo('run dashboard screenshot')}"
              f"<div style='margin-top:10px'>{img('class_us_eq.png') or ''}</div></div></div></section>")
-    S.append(f"<section><h2>Every message, replayed</h2><div class='two'><div>{img('run_beams.png') or todo('beam replay screenshot')}</div>"
-             f"<div>{img('run_alloc.png') or todo('allocation screenshot')}</div></div></section>")
     if have_tok:
         S.append("<section><h2>Cost, measured</h2><div class='kp'>"
                  f"<div><div class='lbl'>Cost per run</div><div class='big'>{usd(pr['cost_usd'])}</div></div>"
@@ -907,20 +861,19 @@ def build_slides(ctx: dict) -> str:
                  "<li><b>Overspending:</b> time, token, dollar and call budgets checked before every call</li></ul></div>"
                  f"<div>{img('safety.png') or ''}</div></div></section>")
     bs = batches_v3()
-    if len(bs) > 1:
-        from collections import Counter
-        rows = "".join(f"<tr><td>{e(n)}</td><td>{e(', '.join(f'{v} {k}' for k, v in Counter(r['status'] for r in b).items()) if b else 'manual runs')}</td>"
-                       f"<td>{e(w.split('. Fixed')[0][:150] + ('…' if len(w.split('. Fixed')[0]) > 150 else ''))}</td></tr>" for n, w, b in bs)
-        S.append(f"<section><h2>What live testing changed</h2><table><tr><th>Batch</th><th>Outcomes</th><th>What it exposed</th></tr>{rows}</table>"
-                 "<p class='mute'>Each batch read run by run; each fix covered by a regression test before the next batch.</p></section>")
     b2 = batch_rows("evidence_summary_batch2.md")
-    if b2:
+    if len(bs) > 1 and b2:
+        from collections import Counter
         nb = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b2)
-        S.append("<section><h2>The Red Team, enforced</h2><ul>"
-                 f"<li>Batch 2: in <b>{nb} of {len(b2)}</b> runs the ACIO accepted a major objection about a manager, then gave that manager <b>more</b> money</li>"
-                 "<li>Cause: the ACIO had no way to resize a manager, so an accepted objection could only become text</li>"
-                 "<li>Fix in code: the ACIO caps or removes managers; an accepted objection cannot end with more money in its target; sent back with the exact fix, then the run stops</li>"
-                 "<li>Lesson: a prompt asking for governance is not governance; the rule has to be checked</li></ul></section>")
+        nruns = sum(len(b) for _, _, b in bs)
+        last = bs[-1][2]
+        lc = ", ".join(f"{v} {k}" for k, v in Counter(r["status"] for r in last).items())
+        S.append(f"<section><h2>Live testing: {len(bs) - 1} batches, {nruns} runs</h2><ul>"
+                 f"<li><b>The Red Team was ignored, quietly.</b> In {nb} of {len(b2)} runs the ACIO accepted a major objection about a manager, then gave that manager <b>more</b> money. Fix: the ACIO caps or removes managers, and code refuses any accepted objection that ends with more money in its target</li>"
+                 "<li><b>The Red Team was reading half the evidence.</b> Tool results were cut at 14,000 characters without notice. Fix: proposals are read one at a time; any cut is marked</li>"
+                 "<li><b>Edge cases found one batch at a time:</b> mislabelled decisions, a hung run, a Head out of budget, inconsistent lists. Each fixed with a regression test</li>"
+                 f"<li><b>Final batch:</b> {e(lc)}</li></ul>"
+                 "<p class='mute'>Lesson: a prompt asking for governance is not governance; the rule has to be checked in code.</p></section>")
     base_h = (pilot.get("pilot") or {}).get("baseline_hours")
     imp = []
     if have_tok:

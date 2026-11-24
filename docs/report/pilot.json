@@ -29,6 +29,6 @@
   "peer_fresh_clone": {
     "who": "The author (no peer was available)",
     "minutes_to_running": 8,
-    "notes": "Fresh clone of commit 0e30d30 into a new folder, following the README: all 9 test files passed, and 8 minutes after git clone a live committee run had finished. Windows Application Control on the author's laptop blocked a newly downloaded SciPy file, so the tests and the run used the author's existing environment with the same package versions. The run was stopped by the Red Team coverage check, which exposed a flaw in how code moved weight after a cap; it was fixed afterwards (Section 3, batch 7)."
+    "notes": "Fresh clone of commit 0e30d30 into a new folder, following the README: all 9 test files passed, and 8 minutes after git clone a live committee run had finished. Windows Application Control on the author's laptop blocked a newly downloaded SciPy file, so the tests and the run used the author's existing environment with the same package versions. The run was stopped by the Red Team coverage check, which exposed a flaw in how code moved weight after a cap; it was fixed afterwards (Section 4, batch 7)."
   }
 }
