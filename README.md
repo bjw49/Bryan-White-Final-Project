@@ -3,7 +3,7 @@
 **Live app: https://acio.onrender.com/** (access code in the Canvas submission; the first load after 15 idle minutes takes about a minute while the free server wakes). To run it locally instead, see *Run it* below.
 
 An AI investment committee for institutional asset owners (pensions, endowments, foundations) that hire external managers.
-You describe the owner in plain English. An Artificial CIO (ACIO) infers the investment policy, a Head of Asset Allocation
+You describe the owner in plain English. An Augmented Chief Investment Officer (ACIO) infers the investment policy, a Head of Asset Allocation
 and Risk proposes a five-class mix, four asset-class Heads each rank ten managers and propose a lineup, a Red Team attacks
 the combined portfolio, and the ACIO writes a decision memo for a human CIO. Every number comes from code-run tools on the
 data; every claim must cite a tool result; every run leaves an audit trail.

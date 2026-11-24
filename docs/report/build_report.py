@@ -480,7 +480,7 @@ def build_report(ctx: dict) -> str:
            f"Repository: {repo if not repo.startswith('http') else f'<a href={e(repo)}>{e(repo)}</a>'}"
            + (f" &middot; Live app: <a href='{e(live_url)}'>{e(live_url)}</a> (access code in the Canvas submission; first load after 15 idle minutes takes about a minute)" if live_url else " &middot; Runs locally from a fresh clone (README)") + "</p>"
            "<div class='box'><b>One sentence.</b> A pension, endowment or foundation describes itself in plain English, and seven GPT agents "
-           "(an Artificial CIO, an asset allocation and risk head, four asset-class heads and a Red Team) produce an evidence-cited asset "
+           "(an Augmented Chief Investment Officer, the ACIO; an asset allocation and risk head, four asset-class heads and a Red Team) produce an evidence-cited asset "
            "allocation, a ranked and sized manager lineup and a decision memo for the human CIO, in a few minutes, for cents.</div>"]
     if have_tok:
         out.append("<div class='box'><b>In brief, for a reader new to the app.</b><ul style='margin:4px 0 2px 18px;padding:0'>"
@@ -492,7 +492,7 @@ def build_report(ctx: dict) -> str:
                    "not follow its reasoning; explaining that reasoning is the first thing to build next.</li>"
                    "<li><b>What testing found.</b> Rules written into the agents' instructions were not enough: the committee quietly ignored "
                    "accepted objections until code enforced them. Every number in this report comes from the app's own runs.</li></ul>"
-                   "<p class='small' style='margin:4px 0 0'><b>Terms used below.</b> ACIO: the AI chief investment officer that runs the committee. "
+                   "<p class='small' style='margin:4px 0 0'><b>Terms used below.</b> ACIO: the Augmented Chief Investment Officer, the AI agent that runs the committee (its card in the app calls it the Chairman, acting CIO). "
                    "AAR: the asset allocation and risk agent. Heads: the four asset-class agents that pick managers. Red Team: the agent that "
                    "challenges the result. Batch: six test runs on the three example owners.</p></div>")
 
