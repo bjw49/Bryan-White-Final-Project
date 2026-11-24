@@ -93,6 +93,7 @@ def head_output(ids, eids, selected_n=3):
     nsel = [{"manager_id": m, "why_considered": "in class", "why_not_selected": "Placeholder: lower conviction than the selected managers."} for m in ids[selected_n:]]
     return {"summary": f"Placeholder lineup of {len(sel_ids)} managers from {len(ids)}; scripted stand-in, not a judgment.",
             "selected": sel, "not_selected": nsel, "ranking": ranking,
+            "no_lineup_reason": None if sel else "NO_DEFENSIBLE_MANAGER",
             "fit": {"expected_active_risk_note": "not run in mock", "diversification_note": "mock", "sizing_logic": "placeholder"},
             "limitations": ["scripted stand-in output"], "data_flags": [],
             "findings": [{"claim": "Placeholder finding.", "evidence": eids[:1]}]}

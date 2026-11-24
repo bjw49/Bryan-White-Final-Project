@@ -494,6 +494,11 @@ def _head_check(ctx: Ctx, cls: str, model_cls):
             if got != want:
                 missing, extra = sorted(want - got), sorted(got - want)
                 errs.append(f"ranking must cover every manager in {cls}: missing {missing or 'none'}, not in {cls} {extra or 'none'}")
+            gw = ctx.gw(HEADS[cls])
+            if not o.get("selected") and gw.calls > gw.cfg["max_calls"]:  # out of budget: a measurement gap, not a judgment
+                errs.append(f"you ran out of data calls ({gw.cfg['max_calls']}), so an empty lineup here reflects missing "
+                            "measurements, not a judgment that no manager is defensible: propose your best lineup from the "
+                            "evidence you have and flag the unmeasured points in ddq_open_items and limitations")
         return errs
     return check
 

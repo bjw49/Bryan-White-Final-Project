@@ -355,5 +355,28 @@ _orch.TIME_BUDGET_S, _orch.HANG_GRACE_S = _tb, _hg
 check("a hung agent stops the run at the time budget instead of waiting for it", res["status"] == "RUN_STOPPED"
       and "stopped responding" in res["stop"]["detail"] and _dt < 6)
 
+# 22. an empty lineup must say why, and only "no defensible manager" is allowed; out of data calls, it is refused
+sys.path.insert(0, str(ROOT / "contracts"))
+from schemas import HeadProposal
+from app.orchestrator import Ctx, _head_check
+_ids = sorted(class_ids([{"role": "user", "content": "CLASS: US_EQ"}]) or ["UE%02d" % i for i in range(1, 11)])
+_empty = head_output(_ids, [], selected_n=0)
+def _err(o):
+    try:
+        HeadProposal.model_validate(o); return ""
+    except Exception as x:
+        return str(x)
+check("an empty lineup without a reason is refused", "NO_DEFENSIBLE_MANAGER" in _err({**_empty, "no_lineup_reason": None}))
+check("an empty lineup with NO_DEFENSIBLE_MANAGER is accepted", _err(_empty) == "")
+check("a reason is refused when managers are selected", "only for an empty lineup" in _err({**head_output(_ids, [], 3), "no_lineup_reason": "NO_DEFENSIBLE_MANAGER"}))
+check("any other reason is refused", _err({**_empty, "no_lineup_reason": "MIX_CHECK_DENIED"}) != "")
+_cx = Ctx(ScriptedLLM(), ROOT, "budget-empty-" + uuid.uuid4().hex[:4])
+_hk = _head_check(_cx, "US_EQ", HeadProposal)
+check("an empty lineup with a reason passes while the Head has budget left", _hk(json.loads(json.dumps(_empty))) == [])
+_gw = _cx.gw("head_us_eq")
+for _ in range(61):
+    _gw.call("get_manager_card", manager_id="UE01")
+check("an empty lineup from a Head that ran out of data calls is sent back", any("ran out of data calls" in x for x in _hk(json.loads(json.dumps(_empty)))))
+
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

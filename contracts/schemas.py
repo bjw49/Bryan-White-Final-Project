@@ -50,9 +50,16 @@ class HeadProposal(BaseModel):
     limitations: list[str]
     data_flags: list[str] = Field(default_factory=list)
     findings: list[Finding]
+    # An empty lineup must say why, and only one reason is allowed (live batch 6: a Head that ran out of data calls
+    # returned no managers because it could not measure the lineup, and the run stopped).
+    no_lineup_reason: Optional[Literal["NO_DEFENSIBLE_MANAGER"]] = None
 
     @model_validator(mode="after")
     def _check(self):
+        if not self.selected and self.no_lineup_reason != "NO_DEFENSIBLE_MANAGER":
+            raise ValueError('an empty lineup is allowed only with no_lineup_reason "NO_DEFENSIBLE_MANAGER": on the evidence, no manager in the class has a defensible case. A tool you could not run, a call budget you ran out of or a measurement you could not make is not that reason: propose your best lineup and put each unverified point in that manager\'s ddq_open_items and in limitations; the ACIO turns them into conditions')
+        if self.selected and self.no_lineup_reason:
+            raise ValueError("no_lineup_reason is only for an empty lineup; remove it when you select managers")
         if self.selected and abs(sum(m.weight_pct for m in self.selected) - 100) > 0.01:
             raise ValueError("selected weights must sum to 100")
         if any(m.weight_pct <= 0 for m in self.selected):

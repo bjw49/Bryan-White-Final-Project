@@ -235,8 +235,9 @@ def SUBMITTED_NOTE() -> str:
     b6 = {r["run_id"] for r in batch_rows("evidence_summary_batch6.md")}
     cur = {r["run_id"] for r in batch_rows("evidence_summary.md")}
     if b6 and cur == b6:
-        return (" apart from three later fixes that act only on failures (a deadline on hung agents, a reserve of lineup "
-                "checks past the data budget, a clearer error for a class with no lineup; Section 3, batch 6)")
+        return (" apart from later fixes that act only on failures (a deadline on hung agents, a reserve of lineup checks "
+                "past the data budget, a clearer error for a class with no lineup, and a rule that an empty lineup must give an "
+                "accepted reason; Section 3, batch 6)")
     return ""
 
 BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exposed, the fix before the next batch)
@@ -283,7 +284,10 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "result, proposed no managers rather than an unmeasured lineup; the ACIO kept 40% in US equity through both repairs. "
      "A first attempt at this batch hung for 16 minutes, because the time budget was checked only before each model call. "
      "Fixed afterwards (scripted tests only): a deadline on every agent (budget plus 60 seconds), a reserve of 8 lineup "
-     "checks past the data budget, and an error telling the ACIO to move weight out of a class with no lineup."),
+     "checks past the data budget, an error telling the ACIO to move weight out of a class with no lineup, and a contract "
+     "rule that an empty lineup must give its reason, where the only accepted reason is that no manager is defensible on "
+     "the evidence; a measurement gap must become a proposed lineup with flagged open items, and an empty lineup from a "
+     "Head that ran out of data calls is sent back."),
 ]
 
 
@@ -729,7 +733,7 @@ def build_report(ctx: dict) -> str:
                "agree on the core managers but move class weights by several points (Section 3), so one run is a draft, not an answer.</li>"
                "<li><b>Rules applied literally.</b> Agents follow their rules to the letter. When the data budget ran out, a Head "
                "proposed no managers rather than an unmeasured lineup, and the ACIO kept weight in that class anyway; when every manager "
-               "in a class was capped, the ACIO had capped itself into a corner. Code now stops these cases or says how to fix them, "
+               "in a class was capped, the ACIO had capped itself into a corner. Code now refuses these cases or says how to fix them, "
                "but the agents' judgment at the edges of the rules is the weakest part of the system.</li>"
                "<li><b>Decisions.</b> The endowment runs meet the 4% real target only narrowly at the base case, and miss it under some houses' assumptions; "
                "the memo says so, but a trustee could read past it. Conditions are text the human CIO must clear; the app does not track them.</li>"
@@ -737,9 +741,8 @@ def build_report(ctx: dict) -> str:
                "sign-off workflow or versioned prompts and data; operational due diligence is out of scope.</li></ul>")
     out.append("<p><b>What I would build next.</b></p><ol>"
                "<li>An evaluation set: owner profiles with expert answers, scored for agreement and run-to-run stability.</li>"
-               "<li>Rules that fail gracefully: a Head may return an empty lineup only for “no defensible manager”, never for a measurement "
-               "gap (it proposes its best lineup and flags the gap instead); agents see their remaining call budget; Heads screen all ten "
-               "managers in one call and research a shortlist.</li>"
+               "<li>Budget-aware agents: each tool result shows the calls left, and Heads screen all ten managers in one call and "
+               "research a shortlist, as an analyst would; then live testing of the empty-lineup rule added tonight.</li>"
                "<li>Upload of the owner's current policy and holdings so recommendations are changes from where the owner is, with turnover and transition cost.</li>"
                "<li>A secure sandbox so proprietary data (licensed manager universes, consultant research, private funds) can be used; then hedge fund, private credit and private equity heads.</li>"
                "<li>A pool of Red Team challengers (allocation, manager, model, data) and an independent risk officer (ACRO) as a second line.</li>"
