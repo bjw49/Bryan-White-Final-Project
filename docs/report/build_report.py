@@ -694,9 +694,16 @@ def build_report(ctx: dict) -> str:
     rate = float(pilot.get("analyst_cost_per_hour_usd") or 150)
     out.append("<h3>Real user trial</h3>")
     if pi.get("who") and pi.get("quote"):
-        out.append(f"<p><b>{e(pi['who'])}</b> ({e(pi.get('role'))}) used the app on {e(pi.get('date'))} for: {e(pi.get('task'))}.</p>"
-                   f"<blockquote class='box'>“{e(pi['quote'])}”</blockquote>"
-                   + (f"<p>What they would change: {e(pi.get('what_they_would_change'))}</p>" if pi.get("what_they_would_change") else ""))
+        out.append(f"<p><b>{e(pi['who'])}</b> ({e(pi.get('role'))}) used the hosted app on {e(pi.get('date'))} for: {e(pi.get('task'))}</p>"
+                   f"<blockquote class='box'>“{e(pi['quote'])}”</blockquote>")
+        if pi.get("feedback"):
+            out.append("<p>Their feedback, in their words:</p><ul>" + "".join(f"<li>“{e(x)}”</li>" for x in pi["feedback"]) + "</ul>")
+        if pi.get("what_they_would_change"):
+            out.append(f"<p><b>What they would change:</b> {e(pi['what_they_would_change'])}</p>")
+        if pi.get("notes"):
+            out.append(f"<p class='small'>{e(pi['notes'])}</p>")
+        if pi.get("lesson"):
+            out.append(f"<div class='box'><b>What the pilot changed in my view.</b> {e(pi['lesson'])}</div>")
     else:
         out.append(f"<p>{todo('pilot.json: who tried it (a role such as investment professional at an institutional allocator, no employer), date, task, a direct quote')}</p>")
     out.append("<h3>Quantified benefits</h3>")
@@ -711,6 +718,10 @@ def build_report(ctx: dict) -> str:
         rows.append(("Time saved per draft", f"{hours_saved:.1f} hours (about {usd(hours_saved * rate, 0)} at {usd(rate, 0)}/hour, a stated estimate)", "computed"))
         if have_tok:
             rows.append(("Cost ratio, analyst time vs model", f"about {hours_saved * rate / max(pr['cost_usd'], 1e-6):,.0f} to 1", "computed"))
+    elif pi.get("baseline_elapsed"):
+        rows.append(("Turnaround today for the same first draft (elapsed, not effort)", e(pi["baseline_elapsed"]), e(pi.get("baseline_basis") or "pilot estimate")))
+        rows.append(("Turnaround with the app, including human review", f"{float(app_m or 0):g} minutes to a decision plus {float(rev_m or 0):g} minutes of review", "pilot, timed"))
+        rows.append(("Analyst effort saved", "Not measured: the pilot estimated calendar time, which is mostly waiting for meetings, not hours of work, so no dollar saving is claimed", ""))
     else:
         rows.append(("Analyst time for the same first draft today", todo("pilot.json baseline_hours and baseline_basis (your own estimate for a 4-class manager short-list plus allocation memo, or a timed attempt)"), ""))
     rows.append(("Quality: every claim traceable", "Uncited findings are dropped by code; every number is a tool result with an evidence id", "Safety tests"))
@@ -742,6 +753,9 @@ def build_report(ctx: dict) -> str:
                "<li><b>Product.</b> One shared access code and one run at a time on the hosted app, run history lost when Render restarts, no user accounts, "
                "sign-off workflow or versioned prompts and data; operational due diligence is out of scope.</li></ul>")
     out.append("<p><b>What I would build next.</b></p><ol>"
+               "<li>A secretary agent, from the pilot: committee minutes a decision-maker can follow, with the starting assumptions, "
+               "constraints and data sources, each Red Team objection in plain language and what changed because of it, and the "
+               "allocation's reasoning step by step. It would read the audit trace, so it adds explanation without new numbers.</li>"
                "<li>An evaluation set: owner profiles with expert answers, scored for agreement and run-to-run stability.</li>"
                "<li>Budget-aware agents: each tool result shows the calls left, and Heads screen all ten managers in one call and "
                "research a shortlist, as an analyst would; then live testing of the empty-lineup rule added tonight.</li>"
@@ -859,9 +873,18 @@ def build_slides(ctx: dict) -> str:
     imp = []
     if have_tok:
         imp.append(f"<li>First-draft committee package in <b>{mmss(pr['elapsed_s'])}</b> for <b>{usd(pr['cost_usd'])}</b></li>")
-    imp.append(f"<li>Today: {e(str(base_h) + ' analyst hours') if base_h else todo('baseline hours')}</li>")
+    pe = (pilot.get("pilot") or {})
+    if base_h:
+        imp.append(f"<li>Today: {e(str(base_h))} analyst hours</li>")
+    elif pe.get("baseline_elapsed"):
+        imp.append(f"<li>Pilot: today {e(pe['baseline_elapsed'])} elapsed for a comparable first draft; with the app "
+                   f"{e(pe.get('with_app_minutes'))} minutes to a decision plus {e(pe.get('review_minutes'))} minutes of review</li>")
+    else:
+        imp.append(f"<li>Today: {todo('baseline hours')}</li>")
     q = (pilot.get("pilot") or {}).get("quote")
     imp.append(f"<li>Pilot user: {('“' + e(q) + '”') if q else todo('pilot quote')}</li>")
+    if pe.get("what_they_would_change"):
+        imp.append("<li>What the pilot could not do: follow the reasoning. Next: a secretary agent that writes minutes a decision-maker can follow</li>")
     imp.append("<li>Deflated Sharpe reproduces the paper's example (0.9004 / 0.9505)</li>")
     S.append("<section><h2>Impact</h2><ul>" + "".join(imp) + "</ul></section>")
     S.append("<section><h2>Limits and next steps</h2><ul>"
