@@ -288,6 +288,8 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "rule that an empty lineup must give its reason, where the only accepted reason is that no manager is defensible on "
      "the evidence; a measurement gap must become a proposed lineup with flagged open items, and an empty lineup from a "
      "Head that ran out of data calls is sent back."),
+    ("evidence_summary.md", "Batch 7 (submitted code)",
+     "The measured evidence in Sections 4 and 6, on the code as submitted, including the batch 6 fixes."),
 ]
 
 
@@ -384,7 +386,7 @@ def coverage_html() -> str:
                     f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) or "none") + "</td></tr>")
     after = ""
     ids2 = {x["run_id"] for x in b2}
-    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md") for r in batch_rows(f) if r["run_id"] not in ids2}
+    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
     b3 = list(b3.values())
     if b3:
         bad3 = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b3 if r["status"] != "RUN_STOPPED")
@@ -410,7 +412,7 @@ def consistency_html() -> str:
     rows = []
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
                         ("consistency_batch4.json", "Batch 4"), ("consistency_batch5.json", "Batch 5"),
-                        ("consistency_batch6.json", "Batch 6")):
+                        ("consistency_batch6.json", "Batch 6"), ("consistency.json", "Batch 7")):
         c = load(ROOT / "output" / fname)
         if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue
