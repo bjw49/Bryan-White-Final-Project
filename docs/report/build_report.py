@@ -311,7 +311,12 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "selected manager taken out of not selected, a ranked manager missing from both lists added to not selected, tied ranks "
      "renumbered in order) and flags it; the ranking order, the selection and the weights are never changed, and a real gap, "
      "such as a selected manager missing from the ranking, still fails."),
-    ("evidence_summary.md", "Batch 9 (submitted code)", "The measured evidence in Sections 4 and 6, on the code as submitted."),
+    ("evidence_summary.md", "Batch 9 (submitted code)",
+     "The measured evidence in Sections 4 and 6, on the code as submitted. No run stopped. The list reconciliation from batch 8 "
+     "worked live (a Head listed a manager twice; code removed the duplicate and flagged it), and the coverage check sent two "
+     "ACIO answers back once each, both fixed. The foundation run ended NEEDS_OWNER_INPUT, which is the label working as designed: "
+     "the brief does not say whether its 4% real objective is before or after the 6% payout, or whether its 30% loss tolerance "
+     "is a hard limit, and the ACIO asked the owner rather than guess, while still giving a provisional mix."),
 ]
 
 
@@ -959,7 +964,9 @@ def comparison_html() -> str | None:
                         ("evidence_summary_batch6.md", "batch 6")):
         ids = {r["run_id"] for r in batch_rows(fname)}
         ok = [r for r in all_runs if r["run_id"] in ids and r.get("status") not in ("RUN_STOPPED", "ESCALATED")]
-        a = [r for r in ok if r.get("label") == "endowment"] or [r for r in ok if (r.get("label") or "").startswith("endowment-repeat")]
+        used_fu = [r for r in ok if (r.get("label") == "endowment" or (r.get("label") or "").startswith("endowment-repeat"))
+                   and (r.get("budgets") or {}).get("followups_used", 0) > 0]
+        a = sorted(used_fu, key=lambda r: r.get("label") != "endowment")  # the plain endowment run first, if it used follow-ups
         b = [r for r in ok if r.get("label") == "endowment-no-followups"]
         if a and b:
             used = name
@@ -982,7 +989,11 @@ def comparison_html() -> str | None:
             f"<tr><td>Time</td><td class='n'>{mmss(a['elapsed_s'])}</td><td class='n'>{mmss(b['elapsed_s'])}</td></tr></table>"
             f"<p>Allocation difference between the two runs: {diff:.1f} percentage points of the portfolio moved; "
             f"{len(ma & mb)} of {len(ma | mb)} managers appear in both lineups. Part of any difference is run-to-run variation of the model, "
-            "not the follow-ups alone; a single pair cannot separate the two, so this is evidence of the cost saved and an indication, not proof, of the quality effect.</p>")
+            "not the follow-ups alone, and a single pair cannot separate the two. "
+            + ("In this pair, turning follow-ups off saved money, which is evidence of the cost saved and an indication, not proof, of the quality effect.</p>"
+               if b["cost_usd"] < a["cost_usd"] else
+               "In this pair the run without follow-ups cost more: run-to-run variation in how much each agent reads is larger than the cost "
+               "of one or two follow-ups, so turning them off is not a reliable saving (in most earlier batches the off run was cheaper).</p>"))
 
 
 def main(argv=None) -> int:
