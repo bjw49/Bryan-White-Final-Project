@@ -294,8 +294,8 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
     ("evidence_summary.md", "Batch 7 (submitted code)",
      "The measured evidence in Sections 4 and 6, including the batch 6 fixes. Fixed afterwards (scripted tests only), from "
      "the fresh-clone run in Section 6: when one objection named two managers and the ACIO capped one, code moved the freed "
-     "weight into the other, which then breached the coverage rule on every repair. Freed weight now goes only to managers "
-     "not named in an objection the ACIO accepted."),
+     "weight into the other, which then breached the coverage rule on every repair (in this batch one run needed both repairs "
+     "for the same reason, and completed). Freed weight now goes only to managers not named in an objection the ACIO accepted."),
 ]
 
 
@@ -428,10 +428,12 @@ def consistency_html() -> str:
                      f"<td class='n'>{max(rng.values()) if rng else 0:g} pts</td><td>{e(', '.join(f'{k} {v:g}' for k, v in rng.items()))}</td></tr>", c.get("runs")))
     if not rows:
         return ""
+    pcts = [float(r[1].split("class='n'>")[1].split("%")[0]) for r in rows]
     return ("<h3>Same brief, three runs</h3><p>Each batch runs the endowment brief three times. Code measures how much of the portfolio "
-            "the runs hold identically (pairwise, manager positions only) and how far class weights move. The model is not deterministic, "
-            "so a human CIO should expect class weights to move by a few points and the satellite managers to change from run to run; "
-            "the core managers repeat.</p><table><tr><th>Batch</th><th>Decisions</th><th class='n'>Portfolio in common</th>"
+            "the runs hold identically (pairwise, manager positions only) and how far class weights move. The model is not deterministic: "
+            f"across batches the runs held between {min(pcts):.0f}% and {max(pcts):.0f}% of the portfolio in common, and class weights moved "
+            "by up to 10 points. The asset allocation is the more stable part; the satellite managers change from run to run. A human CIO "
+            "should treat one run as one committee's draft, and running the same brief two or three times shows which choices are robust.</p><table><tr><th>Batch</th><th>Decisions</th><th class='n'>Portfolio in common</th>"
             "<th class='n'>Widest class range</th><th>Class weight range across the 3 runs (points)</th></tr>" + "".join(r[1] for r in rows) + "</table>")
 
 
@@ -749,7 +751,7 @@ def build_report(ctx: dict) -> str:
                "<li><b>Data.</b> Forty anonymised managers (ten per class) with altered return streams; benchmarks and factors without full documentation; CMAs differ in index, date and currency across houses, and international equity has only three direct estimates.</li>"
                "<li><b>Method.</b> Manager mixes are evaluated in-sample; the deflated Sharpe ratio needs an assumed number of trials; stress scenarios are calendar episodes; there is no liability model, so a pension's funded-status risk is described, not optimised.</li>"
                "<li><b>Agents.</b> One model family for all roles; reasoning effort none; quality is not scored against expert decisions. Repeat runs of one brief "
-               "agree on the core managers but move class weights by several points (Section 3), so one run is a draft, not an answer.</li>"
+               "share only about half to three quarters of their manager positions and move class weights by up to 10 points (Section 3), so one run is a draft, not an answer.</li>"
                "<li><b>Rules applied literally.</b> Agents follow their rules to the letter. When the data budget ran out, a Head "
                "proposed no managers rather than an unmeasured lineup, and the ACIO kept weight in that class anyway; when every manager "
                "in a class was capped, the ACIO had capped itself into a corner. Code now refuses these cases or says how to fix them, "
@@ -894,7 +896,7 @@ def build_slides(ctx: dict) -> str:
     imp.append("<li>Deflated Sharpe reproduces the paper's example (0.9004 / 0.9505)</li>")
     S.append("<section><h2>Impact</h2><ul>" + "".join(imp) + "</ul></section>")
     S.append("<section><h2>Limits and next steps</h2><ul>"
-             "<li>Repeat runs agree on core managers but move class weights by a few points: one run is a draft, not an answer</li>"
+             "<li>Repeat runs of one brief share only half to three quarters of their managers: one run is a draft, not an answer</li>"
              "<li>Anonymised sample managers; in-sample mix statistics; no liability model; one model family for all agents</li>"
              "<li>Next: expert-scored evaluation set; upload of current policy and holdings; secure sandbox for licensed and private-fund data</li>"
              "<li>Then: hedge fund and private markets heads, a pool of Red Team challengers, an independent risk officer, and peer-to-peer consultation between specialist agents</li>"
