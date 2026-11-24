@@ -404,7 +404,7 @@ def coverage_html() -> str:
 
 def consistency_html() -> str:
     rows = []
-    for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
+    for fname, name in (("consistency_batch3.json", "Batch 3"),
                         ("consistency_batch4.json", "Batch 4"), ("consistency_batch5.json", "Batch 5"),
                         ("consistency_batch6.json", "Batch 6"), ("consistency_batch7.json", "Batch 7"),
                         ("consistency_batch8.json", "Batch 8"), ("consistency.json", "Batch 9")):
@@ -482,6 +482,19 @@ def build_report(ctx: dict) -> str:
            "<div class='box'><b>One sentence.</b> A pension, endowment or foundation describes itself in plain English, and seven GPT agents "
            "(an Artificial CIO, an asset allocation and risk head, four asset-class heads and a Red Team) produce an evidence-cited asset "
            "allocation, a ranked and sized manager lineup and a decision memo for the human CIO, in a few minutes, for cents.</div>"]
+    if have_tok:
+        out.append("<div class='box'><b>In brief, for a reader new to the app.</b><ul style='margin:4px 0 2px 18px;padding:0'>"
+                   "<li><b>What it is.</b> A first draft of an investment committee's work: the asset mix, which external managers to hire "
+                   "in each asset class, a devil's advocate's objections, and a memo. A human chief investment officer reviews it and decides.</li>"
+                   f"<li><b>What it costs.</b> {usd(pr['cost_usd'])} and about {max(1, round(pr['elapsed_s'] / 60))} minutes per draft, "
+                   f"measured over {tok['n_runs']} live runs.</li>"
+                   "<li><b>What a real user said.</b> A pension plan's Chief Investment Officer liked watching the committee debate, but could "
+                   "not follow its reasoning; explaining that reasoning is the first thing to build next.</li>"
+                   "<li><b>What testing found.</b> Rules written into the agents' instructions were not enough: the committee quietly ignored "
+                   "accepted objections until code enforced them. Every number in this report comes from the app's own runs.</li></ul>"
+                   "<p class='small' style='margin:4px 0 0'><b>Terms used below.</b> ACIO: the AI chief investment officer that runs the committee. "
+                   "AAR: the asset allocation and risk agent. Heads: the four asset-class agents that pick managers. Red Team: the agent that "
+                   "challenges the result. Batch: six test runs on the three example owners.</p></div>")
 
     # ---------------- 1 motivation
     out.append("<h2>2. Motivation</h2>")
@@ -791,7 +804,7 @@ html,body{margin:0;height:100%;background:#05090f}
 .reveal .slides section{text-align:left}
 .reveal h1,.reveal h2{font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#19e6ff;text-transform:uppercase;letter-spacing:.08em;text-shadow:0 0 14px rgba(25,230,255,.45)}
 .reveal h1{font-size:1.9em}.reveal h2{font-size:1.25em;margin-bottom:.4em}
-.reveal p,.reveal li{font-size:.78em;line-height:1.4}
+.reveal p,.reveal li{font-size:.86em;line-height:1.38}
 .reveal .big{font:700 2.1em ui-monospace,Consolas,monospace;color:#ffb000;text-shadow:0 0 12px rgba(255,176,0,.45)}
 .reveal .lbl{font-size:.5em;letter-spacing:.16em;text-transform:uppercase;color:#8fa6bb}
 .reveal .kp{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:.5em}
@@ -801,7 +814,7 @@ html,body{margin:0;height:100%;background:#05090f}
 .reveal .todo{background:#fff3c4;color:#5b4500;padding:2px 8px;font-size:.6em}
 .reveal svg{max-height:540px;width:100%}
 .reveal .mute{color:#8fa6bb;font-size:.6em}
-.reveal table{font-size:.62em;border-collapse:collapse;width:100%}
+.reveal table{font-size:.74em;border-collapse:collapse;width:100%}
 .reveal td,.reveal th{border-bottom:1px solid rgba(25,230,255,.18);padding:4px 6px;text-align:left}
 .reveal th{color:#8fa6bb}
 /* offline fallback when reveal.js cannot load: one slide at a time, arrow keys */
@@ -820,7 +833,8 @@ def build_slides(ctx: dict) -> str:
     S = []
     S.append("<section><h1>ACIO</h1><h2 style='color:#ffb000'>Augmented Investment Intelligence</h2>"
              "<p>An AI investment committee for pensions, endowments and foundations that hire external managers.</p>"
-             f"<p class='mute'>{e(pilot.get('author', 'Bryan White'))} &middot; MGT 409 &middot; Yale SOM &middot; November 2026</p></section>")
+             f"<p class='mute'>{e(pilot.get('author', 'Bryan White'))} &middot; MGT 409 &middot; Yale SOM &middot; November 2026</p>"
+             + (f"<p class='mute'>Live app: {e(pilot.get('live_url'))} &middot; Code: {e(pilot.get('repo_url'))}</p>" if pilot.get("live_url") else "") + "</section>")
     S.append("<section><h2>The problem</h2><ul>"
              "<li>Investment teams, small and large, at pensions, endowments, foundations and insurers that hire <b>external managers</b></li>"
              "<li>Two linked decisions take most of their time: the <b>asset allocation</b> and <b>which managers to hire</b>, and in what size</li>"
@@ -837,9 +851,11 @@ def build_slides(ctx: dict) -> str:
     S.append(f"<section><h2>Seven agents, one committee</h2>{diagram(True)}"
              "<p class='mute'>React + FastAPI + PydanticAI, OpenAI Responses API (gpt-6-luna), hosted on Render. Code does every calculation; agents cite tool results.</p></section>")
     shot = img("chat_live.png") or img("chat_run_mock.png")
-    S.append("<section><h2>Demo: ask &rarr; committee &rarr; memo</h2><div class='two'>"
-             f"<div>{shot or todo('chat screenshot')}</div><div>{img('run_top.png') or todo('run dashboard screenshot')}"
-             f"<div style='margin-top:10px'>{img('class_us_eq.png') or ''}</div></div></div></section>")
+    S.append("<section><h2>Demo: ask &rarr; committee &rarr; memo</h2>"
+             f"<div style='margin-bottom:8px'>{(img('run_top.png') or todo('run dashboard screenshot')).replace('<img ', '<img style=\'max-height:260px\' ', 1)}</div>"
+             "<ul style='margin-top:0'><li>Describe the owner in plain English, or pick an example; the ACIO asks up to three questions</li>"
+             "<li>Watch the committee work: every message between agents, with the clock, tokens and cost</li>"
+             "<li>The decision opens with the conditions for the human CIO, the allocation, the manager lineup and every objection answered</li></ul></section>")
     if have_tok:
         S.append("<section><h2>Cost, measured</h2><div class='kp'>"
                  f"<div><div class='lbl'>Cost per run</div><div class='big'>{usd(pr['cost_usd'])}</div></div>"
@@ -867,7 +883,7 @@ def build_slides(ctx: dict) -> str:
         nb = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b2)
         nruns = sum(len(b) for _, _, b in bs)
         last = bs[-1][2]
-        lc = ", ".join(f"{v} {k}" for k, v in Counter(r["status"] for r in last).items())
+        lc = ", ".join(f"{v} {k.lower().replace('_', ' ')}" for k, v in Counter(r["status"] for r in last).items())
         S.append(f"<section><h2>Live testing: {len(bs) - 1} batches, {nruns} runs</h2><ul>"
                  f"<li><b>The Red Team was ignored, quietly.</b> In {nb} of {len(b2)} runs the ACIO accepted a major objection about a manager, then gave that manager <b>more</b> money. Fix: the ACIO caps or removes managers, and code refuses any accepted objection that ends with more money in its target</li>"
                  "<li><b>The Red Team was reading half the evidence.</b> Tool results were cut at 14,000 characters without notice. Fix: proposals are read one at a time; any cut is marked</li>"
