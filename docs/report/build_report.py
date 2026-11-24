@@ -411,8 +411,10 @@ def coverage_html() -> str:
     return ("<h3>The Red Team, enforced</h3><p>A devil's advocate only matters if its accepted objections change the decision. Batch 2 showed "
             f"that they did not always: in <b>{n_bad} of {len(b2)} runs</b> the ACIO accepted or partly accepted a major objection about a "
             "manager and then raised that manager's share of the portfolio, usually by cutting high yield and moving the risk into "
-            "investment grade, where the doubted managers sat. The ACIO had no way to resize a manager (code builds the lineup from the "
-            "Heads' weights), so its accepted objections could only become text. The table is a retro-check of the saved batch-2 runs "
+            "investment grade, where the doubted managers sat. At the final decision, the ACIO had no way to resize a manager: code builds "
+            "the lineup from the Heads' weights, and the follow-up questions that let a Head revise its lineup are only available in the "
+            "earlier review, before the Red Team reports. Its accepted objections could only become text. The fix (manager caps and "
+            "removals applied by code) is the simple version; Section 7 describes the fuller one. The table is a retro-check of the saved batch-2 runs "
             "against the rule now in code; the same pattern appeared in a run on the hosted app.</p>"
             "<table><tr><th style='width:22%'>Batch 2 run</th><th>Accepted objection, then more money in its target</th></tr>"
             + "".join(rows) + "</table>" + after)
@@ -580,7 +582,7 @@ def build_report(ctx: dict) -> str:
                "<td>see another class, the other heads' proposals, or the allocation</td></tr>"
                "<tr><td><b>Red Team</b> (The Prosecutor)</td><td>Attacks the combined portfolio: concentration, stress, luck vs skill, weak process evidence; objections with a fix criterion</td>"
                "<td>read-only versions of all analytic tools, stress test, read proposals (reasoning stripped)</td><td>publish anything or see the authors' arguments</td></tr></table>")
-    out.append("<p><b>Why this organisation.</b> It is how real committees separate duties: allocation is decided without looking at managers (so a favourite manager "
+    out.append("<p><b>Why this organisation.</b> This is how many institutional investment teams operate, and it separates duties the way their committees do: allocation is decided without looking at managers (so a favourite manager "
                "cannot drive the mix), each head is a specialist with a defensible scope, and dissent is a standing role rather than an accident. Running the AAR and "
                "four heads in parallel keeps a full run to a few minutes (Section 4). The pipeline is deterministic code; agents decide only within their stage.</p>")
     out.append("<p><b>Stack.</b> A React + Vite + TypeScript front end (the build is committed, so users need no Node) talks to a FastAPI back end. "
@@ -783,6 +785,9 @@ def build_report(ctx: dict) -> str:
                "<li>A secretary agent, from the pilot: committee minutes a decision-maker can follow, with the starting assumptions, "
                "constraints and data sources, each Red Team objection in plain language and what changed because of it, and the "
                "allocation's reasoning step by step. It would read the audit trace, so it adds explanation without new numbers.</li>"
+               "<li>An active dialogue after the Red Team: when the ACIO accepts an objection about a manager, it reopens the discussion with "
+               "that Head (and the Red Team), the Head revises its lineup, and the ACIO keeps final authority. Within this project's time, "
+               "code-applied caps and removals were the simpler, testable route, so this was not built.</li>"
                "<li>An evaluation set: owner profiles with expert answers, scored for agreement and run-to-run stability.</li>"
                "<li>Budget-aware agents: each tool result shows the calls left, and Heads screen all ten managers in one call and "
                "research a shortlist, as an analyst would; then live testing of the empty-lineup rule added tonight.</li>"
