@@ -299,7 +299,12 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "the fresh-clone run in Section 6: when one objection named two managers and the ACIO capped one, code moved the freed "
      "weight into the other, which then breached the coverage rule on every repair (in this batch one run needed both repairs "
      "for the same reason, and completed). Freed weight now goes only to managers not named in an objection the ACIO accepted."),
-    ("evidence_summary.md", "Batch 8 (submitted code)", "The measured evidence in Sections 4 and 6, on the code as submitted."),
+    ("evidence_summary.md", "Batch 8 (submitted code)",
+     "The measured evidence in Sections 4 and 6, on the code as submitted. One run stopped at the start: the US investment-grade "
+     "Head's proposal failed its contract twice (its ranking did not list exactly the managers it selected and rejected), so the "
+     "run stopped before any allocation. Several Heads needed a repair for listing a manager twice; the repair fixed each. "
+     "Not fixed: Heads' bookkeeping across three long lists (ranking, selected, not selected) is a contract a model can still "
+     "fail, and a cheaper design would have code build the ranking from one list."),
 ]
 
 
@@ -425,7 +430,7 @@ def consistency_html() -> str:
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
                         ("consistency_batch4.json", "Batch 4"), ("consistency_batch5.json", "Batch 5"),
                         ("consistency_batch6.json", "Batch 6"), ("consistency_batch7.json", "Batch 7"),
-                        ("consistency.json", "Batch 8")):
+                        ("consistency_batch8.json", "Batch 8")):
         c = load(ROOT / "output" / fname)
         if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue
@@ -939,11 +944,15 @@ def build_slides(ctx: dict) -> str:
 
 
 def comparison_html() -> str | None:
-    ids = {r["run_id"] for r in batch_rows("evidence_summary.md")}
-    runs = [r for r in live_runs() if r["run_id"] in ids]
-    ok = [r for r in runs if r.get("status") not in ("RUN_STOPPED", "ESCALATED")]
-    a = [r for r in ok if r.get("label") == "endowment"] or [r for r in ok if (r.get("label") or "").startswith("endowment-repeat")]
-    b = [r for r in ok if r.get("label") == "endowment-no-followups"]
+    all_runs, a, b, used = live_runs(), [], [], ""
+    for fname, name in (("evidence_summary.md", "the final batch"), ("evidence_summary_batch7.md", "batch 7"), ("evidence_summary_batch6.md", "batch 6")):
+        ids = {r["run_id"] for r in batch_rows(fname)}
+        ok = [r for r in all_runs if r["run_id"] in ids and r.get("status") not in ("RUN_STOPPED", "ESCALATED")]
+        a = [r for r in ok if r.get("label") == "endowment"] or [r for r in ok if (r.get("label") or "").startswith("endowment-repeat")]
+        b = [r for r in ok if r.get("label") == "endowment-no-followups"]
+        if a and b:
+            used = name
+            break
     if not a or not b:
         return None
     a, b = a[0], b[-1]
@@ -953,7 +962,8 @@ def comparison_html() -> str | None:
         return (d.get("asset_allocation") or {}).get("weights_pct", {}), {p["manager_id"] for p in d.get("manager_portfolio", [])}
     (wa, ma), (wb, mb) = w(a), w(b)
     diff = sum(abs(float(wa.get(k, 0)) - float(wb.get(k, 0))) for k in set(wa) | set(wb)) / 2
-    return ("<table><tr><th></th><th class='n'>Follow-ups on</th><th class='n'>Follow-ups off</th></tr>"
+    return ((f"<p class='small'>Pair from {used}" + (" (the final batch's follow-ups-off run stopped)" if used != "the final batch" else "") + ".</p>")
+            + "<table><tr><th></th><th class='n'>Follow-ups on</th><th class='n'>Follow-ups off</th></tr>"
             f"<tr><td>Run</td><td class='n'>{e(a.get('label'))}</td><td class='n'>{e(b.get('label'))}</td></tr>"
             f"<tr><td>Follow-ups used</td><td class='n'>{a['budgets']['followups_used']}</td><td class='n'>{b['budgets']['followups_used']}</td></tr>"
             f"<tr><td>Tokens</td><td class='n'>{a['tokens']['total']:,}</td><td class='n'>{b['tokens']['total']:,}</td></tr>"
