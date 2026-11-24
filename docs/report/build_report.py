@@ -508,7 +508,10 @@ def build_report(ctx: dict) -> str:
                "histories, computing statistics against benchmarks and peers, and writing it all up for a committee. The manager universe is "
                "extremely large (eVestment alone lists more than 27,500 institutional strategies; Section 2), so the work is never complete: a team "
                "covers the managers it has time for, not every manager that could fit.</p>")
-    out.append("<p><b>What it costs.</b> Mostly time, and the time goes to the wrong place. Hours spent reading descriptions and analysing returns "
+    out.append("<p><b>What it costs.</b> Money and time. Many owners pay investment consultants to do part of this work, and the bill runs from "
+               "hundreds of thousands of dollars a year to millions: CalPERS, the largest US public pension, listed annual consulting contracts of "
+               "$3.15 million for its general pension consultant and $1.2 million and $0.57 million for its real assets and private equity "
+               "consultants (CalPERS Investment Committee, December 2018). The time goes to the wrong place. Hours spent reading descriptions and analysing returns "
                "are hours not spent meeting managers, which is where a team learns what the numbers cannot show: how the team thinks, whether "
                "the process is real, what could break it. The analysis also has known weak spots: picking on trailing returns, comparing many "
                "candidates without allowing for luck, and committees that rarely record a formal dissent.</p>")
@@ -782,7 +785,7 @@ def build_report(ctx: dict) -> str:
                "<li>An MCP server over the data gateway, so the same read-only, budgeted tools can be used from other agent hosts.</li></ol>")
     out.append("<p class='small'>Sources: Bailey and López de Prado (2014), The Deflated Sharpe Ratio, Journal of Portfolio Management; Nasdaq eVestment product pages and the "
                "Snowflake blog on eVestment's agent (May 2026); BlackRock eFront Copilot pages; TradingAgents (Xiao et al., arXiv 2412.20138); Cause IQ private foundation directory; "
-               "FoundationMark via Financial Planning (2025); CMA reports from KKR, Invesco, Amundi, PGIM, Northern Trust, BNY and Nuveen (page references in <code>db/cma.db</code>); "
+               "FoundationMark via Financial Planning (2025); CalPERS Investment Committee agenda item 7a, December 2018 (consultant contract amounts); CMA reports from KKR, Invesco, Amundi, PGIM, Northern Trust, BNY and Nuveen (page references in <code>db/cma.db</code>); "
                "MGT 409 lecture 11 for model prices. AI tools were used for drafting and coding; the author is responsible for every claim and number.</p>")
     return f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>ACIO: Augmented Investment Intelligence (report)</title><style>{CSS}</style></head><body>{''.join(out)}</body></html>"
 
