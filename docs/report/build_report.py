@@ -233,10 +233,13 @@ RUN_ID = r"run-\d{8}T\d{6}-[0-9a-f]{4}"
 def SUBMITTED_NOTE() -> str:
     """Batch 5 ran before the last change (a second repair for the final decision); a later batch runs the submitted code."""
     b6 = {r["run_id"] for r in batch_rows("evidence_summary_batch6.md")}
+    b7 = {r["run_id"] for r in batch_rows("evidence_summary_batch7.md")}
     cur = {r["run_id"] for r in batch_rows("evidence_summary.md")}
-    if cur and cur != b6:
+    if cur and cur == b7:
         return (" apart from one later fix that acts only when the ACIO caps a manager (freed weight no longer goes to "
                 "another doubted manager; Section 3, batch 7)")
+    if cur and cur not in (b6, b7):
+        return ""
     if b6 and cur == b6:
         return (" apart from later fixes that act only on failures (a deadline on hung agents, a reserve of lineup checks "
                 "past the data budget, a clearer error for a class with no lineup, and a rule that an empty lineup must give an "
@@ -291,11 +294,12 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "rule that an empty lineup must give its reason, where the only accepted reason is that no manager is defensible on "
      "the evidence; a measurement gap must become a proposed lineup with flagged open items, and an empty lineup from a "
      "Head that ran out of data calls is sent back."),
-    ("evidence_summary.md", "Batch 7 (submitted code)",
-     "The measured evidence in Sections 4 and 6, including the batch 6 fixes. Fixed afterwards (scripted tests only), from "
+    ("evidence_summary_batch7.md", "Batch 7",
+     "All six runs completed, with the batch 6 fixes. Fixed afterwards (scripted tests only), from "
      "the fresh-clone run in Section 6: when one objection named two managers and the ACIO capped one, code moved the freed "
      "weight into the other, which then breached the coverage rule on every repair (in this batch one run needed both repairs "
      "for the same reason, and completed). Freed weight now goes only to managers not named in an objection the ACIO accepted."),
+    ("evidence_summary.md", "Batch 8 (submitted code)", "The measured evidence in Sections 4 and 6, on the code as submitted."),
 ]
 
 
@@ -392,7 +396,7 @@ def coverage_html() -> str:
                     f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) or "none") + "</td></tr>")
     after = ""
     ids2 = {x["run_id"] for x in b2}
-    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
+    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md", "evidence_summary_batch7.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
     b3 = list(b3.values())
     if b3:
         bad3 = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b3 if r["status"] != "RUN_STOPPED")
@@ -418,7 +422,8 @@ def consistency_html() -> str:
     rows = []
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
                         ("consistency_batch4.json", "Batch 4"), ("consistency_batch5.json", "Batch 5"),
-                        ("consistency_batch6.json", "Batch 6"), ("consistency.json", "Batch 7")):
+                        ("consistency_batch6.json", "Batch 6"), ("consistency_batch7.json", "Batch 7"),
+                        ("consistency.json", "Batch 8")):
         c = load(ROOT / "output" / fname)
         if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue
