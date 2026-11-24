@@ -752,8 +752,16 @@ def build_report(ctx: dict) -> str:
             lo, hi = float(ab["low_hours"]) - used, float(ab["high_hours"]) - used
             rows.append(("Analyst effort for a comparable first draft today", f"{ab['low_hours']:g} to {ab['high_hours']:g} hours of work",
                          e(ab.get("basis", "author's estimate"))))
-            rows.append(("Effort saved per draft", f"about {lo:,.0f} to {hi:,.0f} hours, roughly ${round(lo * rate, -3):,.0f} to ${round(hi * rate, -3):,.0f} at "
-                         f"{usd(rate, 0)}/hour (a stated estimate); an upper bound, since the team still checks the draft and runs due diligence", "computed"))
+            sc = ab.get("scenarios") or {}
+            costs = [sum(h * r for _, h, r, _ in rows_) for rows_ in sc.values()] + [sum(h * r for _, h, _, r in rows_) for rows_ in sc.values()]
+            review = float(rev_m or 0) / 60 * 500  # the CIO's review time with the app, at the top of the CIO rate
+            if costs:
+                rows.append(("Effort saved per draft", f"about {lo:,.0f} to {hi:,.0f} hours, worth roughly ${round(min(costs) - review, -3):,.0f} to "
+                             f"${round(max(costs) - review, -3):,.0f} in staff cost per draft (each role's hours at its own fully loaded rate); an upper "
+                             "bound, since the team still checks the draft and runs due diligence", e(ab.get("rates_basis", "computed"))))
+            else:
+                rows.append(("Effort saved per draft", f"about {lo:,.0f} to {hi:,.0f} hours, roughly ${round(lo * rate, -3):,.0f} to ${round(hi * rate, -3):,.0f} at "
+                             f"{usd(rate, 0)}/hour (a stated estimate); an upper bound, since the team still checks the draft and runs due diligence", "computed"))
         else:
             rows.append(("Analyst effort saved", "Not measured: the pilot estimated calendar time, which is mostly waiting for meetings, not hours of work, so no dollar saving is claimed", ""))
     else:
@@ -912,7 +920,10 @@ def build_slides(ctx: dict) -> str:
                    f"{e(pe.get('with_app_minutes'))} minutes to a decision plus {e(pe.get('review_minutes'))} minutes of review</li>")
         ab = pilot.get("author_baseline") or {}
         if ab.get("low_hours"):
-            imp.append(f"<li>Effort today: {ab['low_hours']:g} to {ab['high_hours']:g} hours of committee work per draft (author's estimate); with the app, under an hour</li>")
+            sc = ab.get("scenarios") or {}
+            cs = [sum(h * r for _, h, r, _ in v) for v in sc.values()] + [sum(h * r for _, h, _, r in v) for v in sc.values()]
+            worth = f", about ${min(cs) / 1000:,.0f}k to ${max(cs) / 1000:,.0f}k of staff time" if cs else ""
+            imp.append(f"<li>Effort today: {ab['low_hours']:g} to {ab['high_hours']:g} hours of committee work per draft{worth} (author's estimate); with the app, under an hour of review</li>")
     else:
         imp.append(f"<li>Today: {todo('baseline hours')}</li>")
     q = (pilot.get("pilot") or {}).get("quote")

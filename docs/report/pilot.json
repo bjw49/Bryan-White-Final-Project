@@ -34,6 +34,61 @@
   "author_baseline": {
     "low_hours": 150,
     "high_hours": 230,
-    "basis": "author's estimate from experience, for four asset classes: CIO 5 hours (objective, review); each asset-class head 20 hours if experienced, 40 if junior; asset allocation and risk 5 hours plus 5 per asset class; red team 10 per asset class"
+    "basis": "author's estimate from experience, for four asset classes: CIO 5 hours (objective, review); each asset-class head 20 hours if experienced, 40 if junior; asset allocation and risk 5 hours plus 5 per asset class; red team 10 per asset class",
+    "rates_basis": "author's estimate of fully loaded hourly cost (base, bonus, benefits): CIO $300-500; senior heads, allocation and risk, red team $150-250; junior $100-150",
+    "scenarios": {
+      "experienced": [
+        [
+          "CIO",
+          5,
+          300,
+          500
+        ],
+        [
+          "Asset-class heads (4)",
+          80,
+          150,
+          250
+        ],
+        [
+          "Asset allocation and risk",
+          25,
+          150,
+          250
+        ],
+        [
+          "Red team",
+          40,
+          150,
+          250
+        ]
+      ],
+      "junior": [
+        [
+          "CIO",
+          5,
+          300,
+          500
+        ],
+        [
+          "Asset-class heads (4)",
+          160,
+          100,
+          150
+        ],
+        [
+          "Asset allocation and risk",
+          25,
+          100,
+          150
+        ],
+        [
+          "Red team",
+          40,
+          100,
+          150
+        ]
+      ]
+    }
   }
 }
