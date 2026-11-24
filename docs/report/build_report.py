@@ -627,8 +627,9 @@ def build_report(ctx: dict) -> str:
     out.append(consistency_html())
     out.append(pair(
         fig("chat_live.png" if (SHOTS / "chat_live.png").exists() else "chat_run_mock.png",
-            "Figure 2. Chat: the ask, the inferred policy, then the live wire of agent messages with clock, tokens and cost"
-            + ("." if (SHOTS / "chat_live.png").exists() else " (scripted stand-in shown)."), max_h=260),
+            ("Figure 2. The hosted app, live (private foundation example): the committee's messages with clock, tokens and cost, "
+             "then the decision and the open items for the human CIO." if (SHOTS / "chat_live.png").exists() else
+             "Figure 2. Chat: the ask, the inferred policy, then the live wire of agent messages with clock, tokens and cost (scripted stand-in shown)."), max_h=260),
         fig("run_wire.png", "Figure 3. The wire for the traced run: every message between agents, time-stamped.", "agent message log screenshot", max_h=260)))
     out.append(pair(
         fig("run_alloc.png", "Figure 4. AAR proposal (with ranges) vs the ACIO's final, and the lineup the code computed.", "allocation screenshot", max_h=260),
