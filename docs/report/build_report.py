@@ -238,7 +238,10 @@ def SUBMITTED_NOTE() -> str:
     if cur and cur == b7:
         return (" apart from one later fix that acts only when the ACIO caps a manager (freed weight no longer goes to "
                 "another doubted manager; Section 3, batch 7)")
-    if cur and cur not in (b6, b7):
+    b8 = {r["run_id"] for r in batch_rows("evidence_summary_batch8.md")}
+    if cur and cur not in (b6, b7, b8):
+        return ""
+    if cur and cur == b8:
         return (" apart from one later fix that acts only when a Head's manager lists are inconsistent (code reconciles them; "
                 "Section 3, batch 8)")
     if b6 and cur == b6:
@@ -300,7 +303,7 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "the fresh-clone run in Section 6: when one objection named two managers and the ACIO capped one, code moved the freed "
      "weight into the other, which then breached the coverage rule on every repair (in this batch one run needed both repairs "
      "for the same reason, and completed). Freed weight now goes only to managers not named in an objection the ACIO accepted."),
-    ("evidence_summary.md", "Batch 8",
+    ("evidence_summary_batch8.md", "Batch 8",
      "The measured evidence in Sections 4 and 6, on the code as submitted. One run stopped at the start: the US investment-grade "
      "Head's proposal failed its contract twice (its ranking did not list exactly the managers it selected and rejected), so the "
      "run stopped before any allocation. Several Heads needed a repair for listing a manager twice; the repair fixed each. "
@@ -308,6 +311,7 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "selected manager taken out of not selected, a ranked manager missing from both lists added to not selected, tied ranks "
      "renumbered in order) and flags it; the ranking order, the selection and the weights are never changed, and a real gap, "
      "such as a selected manager missing from the ranking, still fails."),
+    ("evidence_summary.md", "Batch 9 (submitted code)", "The measured evidence in Sections 4 and 6, on the code as submitted."),
 ]
 
 
@@ -404,7 +408,7 @@ def coverage_html() -> str:
                     f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) or "none") + "</td></tr>")
     after = ""
     ids2 = {x["run_id"] for x in b2}
-    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md", "evidence_summary_batch7.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
+    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md", "evidence_summary_batch7.md", "evidence_summary_batch8.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
     b3 = list(b3.values())
     if b3:
         bad3 = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b3 if r["status"] != "RUN_STOPPED")
@@ -433,7 +437,7 @@ def consistency_html() -> str:
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
                         ("consistency_batch4.json", "Batch 4"), ("consistency_batch5.json", "Batch 5"),
                         ("consistency_batch6.json", "Batch 6"), ("consistency_batch7.json", "Batch 7"),
-                        ("consistency_batch8.json", "Batch 8")):
+                        ("consistency_batch8.json", "Batch 8"), ("consistency.json", "Batch 9")):
         c = load(ROOT / "output" / fname)
         if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue
@@ -948,7 +952,8 @@ def build_slides(ctx: dict) -> str:
 
 def comparison_html() -> str | None:
     all_runs, a, b, used = live_runs(), [], [], ""
-    for fname, name in (("evidence_summary.md", "the final batch"), ("evidence_summary_batch7.md", "batch 7"), ("evidence_summary_batch6.md", "batch 6")):
+    for fname, name in (("evidence_summary.md", "the final batch"), ("evidence_summary_batch8.md", "batch 8"), ("evidence_summary_batch7.md", "batch 7"),
+                        ("evidence_summary_batch6.md", "batch 6")):
         ids = {r["run_id"] for r in batch_rows(fname)}
         ok = [r for r in all_runs if r["run_id"] in ids and r.get("status") not in ("RUN_STOPPED", "ESCALATED")]
         a = [r for r in ok if r.get("label") == "endowment"] or [r for r in ok if (r.get("label") or "").startswith("endowment-repeat")]
