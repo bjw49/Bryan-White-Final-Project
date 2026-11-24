@@ -135,4 +135,11 @@ for _ in range(rb.cfg["max_calls"] + 2):
     rb.call("list_managers", asset_class="US_IG")
 check("read_proposals works after the data budget is spent", "rows" in rb.call("read_proposals"))
 
+# live batch 6: a Head that spent its data budget could not check its lineup and proposed none. evaluate_manager_mix
+# keeps a reserve of 8 calls past the budget; other tools stay denied.
+_bg = gw("head_us_eq", "budget-reserve")
+for _ in range(60):
+    _bg.call("get_manager_card", manager_id="UE01")
+check("data calls past the budget are denied", _bg.call("get_manager_card", manager_id="UE01").get("error") == "ACCESS_DENIED")
+check("the lineup check still runs past the budget", "error" not in _bg.call("evaluate_manager_mix", weights={"UE01": 50, "UE02": 50}))
 print(f"\n{passed} checks passed")

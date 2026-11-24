@@ -124,7 +124,11 @@ class DataGateway:
             # publish_proposal and read_proposals are exempt from the data budget: a finished proposal must always publish,
             # and a reviewer must always be able to read what it is reviewing (a live run showed the Red Team locked out).
             # It is still counted and audited.
-            if tool not in ("publish_proposal", "read_proposals") and self.calls > self.cfg["max_calls"]:
+            # evaluate_manager_mix gets a reserve of 8 calls past the budget: it is how a Head checks the lineup it is about
+            # to propose. Live batch 6: the US equity Head spent its 60 calls on per-manager statistics, was then denied the
+            # mix check, and returned no lineup, which stopped the run.
+            limit = self.cfg["max_calls"] + (8 if tool == "evaluate_manager_mix" else 0)
+            if tool not in ("publish_proposal", "read_proposals") and self.calls > limit:
                 raise AccessDenied(f"call budget of {self.cfg['max_calls']} reached for this run")
             out = self.tools[tool](**args)
             rows = len(out.get("rows", out.get("data", []))) if isinstance(out, dict) else 0

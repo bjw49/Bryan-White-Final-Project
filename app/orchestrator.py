@@ -534,7 +534,9 @@ def _lineup(final_w: dict, heads: dict, changes: dict | None = None) -> list[dic
             continue
         h = heads.get(cls)
         if not h or not h.get("selected"):
-            raise Stop("allocation_without_lineup", f"{cls} has {w:g}% but its Head selected no managers")
+            raise Stop("allocation_without_lineup", f"{cls} has {w:g}% but its Head selected no managers, so nothing can hold that "
+                                                    f"weight: set {cls} to 0 and move its {w:g} points to classes that have "
+                                                    f"lineups (total 100, inside the guardrails), and say so in the memo")
         ms = [(m, float(m["weight_pct"])) for m in h["selected"]]
         new, freed = {}, 0.0
         for m, x in ms:
