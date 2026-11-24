@@ -232,11 +232,11 @@ RUN_ID = r"run-\d{8}T\d{6}-[0-9a-f]{4}"
 
 def SUBMITTED_NOTE() -> str:
     """Batch 5 ran before the last change (a second repair for the final decision); a later batch runs the submitted code."""
-    b5 = {r["run_id"] for r in batch_rows("evidence_summary_batch5.md")}
+    b6 = {r["run_id"] for r in batch_rows("evidence_summary_batch6.md")}
     cur = {r["run_id"] for r in batch_rows("evidence_summary.md")}
-    if b5 and cur == b5:
-        return (" apart from one later change that acts only when the ACIO's final decision fails a check "
-                "(a second repair; Section 3, batch 5)")
+    if b6 and cur == b6:
+        return (" apart from three later fixes that act only on failures (a deadline on hung agents, a reserve of lineup "
+                "checks past the data budget, a clearer error for a class with no lineup; Section 3, batch 6)")
     return ""
 
 BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exposed, the fix before the next batch)
@@ -276,11 +276,14 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "stopped it rather than invent an allocation. Fixed afterwards (not in these runs): caps are a share of the class, so "
      "the error now says to leave one manager uncapped or lower the class weight, and the ACIO's final decision gets a second "
      "repair, because fixing one final-stage rule can trip another."),
-    ("evidence_summary.md", "Batch 6 (submitted code)",
-     "The measured evidence in Sections 4 and 6, on the code as submitted. A first attempt at this batch hung: in its third run "
-     "the Heads stopped responding after a tool call and the run waited 16 minutes, because the time budget was checked only "
-     "before each model call, never while waiting for one. Fixed: agents run in threads with a deadline of the time budget "
-     "plus 60 seconds, after which the run stops with the reason shown; the cause of the hang itself was not found."),
+    ("evidence_summary_batch6.md", "Batch 6",
+     "The measured evidence in Sections 4 and 6. The second repair from batch 5 saved a run: one endowment repeat needed it "
+     "(a coverage breach, then a malformed answer) and completed. One run stopped: the US equity Head spent its 60-call data "
+     "budget on per-manager statistics, was refused the lineup check, and, bound by the rule that every claim needs a tool "
+     "result, proposed no managers rather than an unmeasured lineup; the ACIO kept 40% in US equity through both repairs. "
+     "A first attempt at this batch hung for 16 minutes, because the time budget was checked only before each model call. "
+     "Fixed afterwards (scripted tests only): a deadline on every agent (budget plus 60 seconds), a reserve of 8 lineup "
+     "checks past the data budget, and an error telling the ACIO to move weight out of a class with no lineup."),
 ]
 
 
@@ -377,7 +380,7 @@ def coverage_html() -> str:
                     f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) or "none") + "</td></tr>")
     after = ""
     ids2 = {x["run_id"] for x in b2}
-    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
+    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary_batch6.md") for r in batch_rows(f) if r["run_id"] not in ids2}
     b3 = list(b3.values())
     if b3:
         bad3 = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b3 if r["status"] != "RUN_STOPPED")
@@ -403,7 +406,7 @@ def consistency_html() -> str:
     rows = []
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
                         ("consistency_batch4.json", "Batch 4"), ("consistency_batch5.json", "Batch 5"),
-                        ("consistency.json", "Batch 6")):
+                        ("consistency_batch6.json", "Batch 6")):
         c = load(ROOT / "output" / fname)
         if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue
@@ -724,12 +727,19 @@ def build_report(ctx: dict) -> str:
                "<li><b>Method.</b> Manager mixes are evaluated in-sample; the deflated Sharpe ratio needs an assumed number of trials; stress scenarios are calendar episodes; there is no liability model, so a pension's funded-status risk is described, not optimised.</li>"
                "<li><b>Agents.</b> One model family for all roles; reasoning effort none; quality is not scored against expert decisions. Repeat runs of one brief "
                "agree on the core managers but move class weights by several points (Section 3), so one run is a draft, not an answer.</li>"
+               "<li><b>Rules applied literally.</b> Agents follow their rules to the letter. When the data budget ran out, a Head "
+               "proposed no managers rather than an unmeasured lineup, and the ACIO kept weight in that class anyway; when every manager "
+               "in a class was capped, the ACIO had capped itself into a corner. Code now stops these cases or says how to fix them, "
+               "but the agents' judgment at the edges of the rules is the weakest part of the system.</li>"
                "<li><b>Decisions.</b> The endowment runs meet the 4% real target only narrowly at the base case, and miss it under some houses' assumptions; "
                "the memo says so, but a trustee could read past it. Conditions are text the human CIO must clear; the app does not track them.</li>"
                "<li><b>Product.</b> One shared access code and one run at a time on the hosted app, run history lost when Render restarts, no user accounts, "
                "sign-off workflow or versioned prompts and data; operational due diligence is out of scope.</li></ul>")
     out.append("<p><b>What I would build next.</b></p><ol>"
                "<li>An evaluation set: owner profiles with expert answers, scored for agreement and run-to-run stability.</li>"
+               "<li>Rules that fail gracefully: a Head may return an empty lineup only for “no defensible manager”, never for a measurement "
+               "gap (it proposes its best lineup and flags the gap instead); agents see their remaining call budget; Heads screen all ten "
+               "managers in one call and research a shortlist.</li>"
                "<li>Upload of the owner's current policy and holdings so recommendations are changes from where the owner is, with turnover and transition cost.</li>"
                "<li>A secure sandbox so proprietary data (licensed manager universes, consultant research, private funds) can be used; then hedge fund, private credit and private equity heads.</li>"
                "<li>A pool of Red Team challengers (allocation, manager, model, data) and an independent risk officer (ACRO) as a second line.</li>"
@@ -869,12 +879,14 @@ def build_slides(ctx: dict) -> str:
 
 
 def comparison_html() -> str | None:
-    runs = live_runs()
-    a = [r for r in runs if r.get("label") == "endowment" and r.get("status") not in ("RUN_STOPPED", "ESCALATED")]
-    b = [r for r in runs if r.get("label") == "endowment-no-followups" and r.get("status") not in ("RUN_STOPPED", "ESCALATED")]
+    ids = {r["run_id"] for r in batch_rows("evidence_summary.md")}
+    runs = [r for r in live_runs() if r["run_id"] in ids]
+    ok = [r for r in runs if r.get("status") not in ("RUN_STOPPED", "ESCALATED")]
+    a = [r for r in ok if r.get("label") == "endowment"] or [r for r in ok if (r.get("label") or "").startswith("endowment-repeat")]
+    b = [r for r in ok if r.get("label") == "endowment-no-followups"]
     if not a or not b:
         return None
-    a, b = a[-1], b[-1]
+    a, b = a[0], b[-1]
 
     def w(r):
         d = load(r["_dir"] / "decision.json") or {}
@@ -882,6 +894,7 @@ def comparison_html() -> str | None:
     (wa, ma), (wb, mb) = w(a), w(b)
     diff = sum(abs(float(wa.get(k, 0)) - float(wb.get(k, 0))) for k in set(wa) | set(wb)) / 2
     return ("<table><tr><th></th><th class='n'>Follow-ups on</th><th class='n'>Follow-ups off</th></tr>"
+            f"<tr><td>Run</td><td class='n'>{e(a.get('label'))}</td><td class='n'>{e(b.get('label'))}</td></tr>"
             f"<tr><td>Follow-ups used</td><td class='n'>{a['budgets']['followups_used']}</td><td class='n'>{b['budgets']['followups_used']}</td></tr>"
             f"<tr><td>Tokens</td><td class='n'>{a['tokens']['total']:,}</td><td class='n'>{b['tokens']['total']:,}</td></tr>"
             f"<tr><td>Cost</td><td class='n'>{usd(a['cost_usd'])}</td><td class='n'>{usd(b['cost_usd'])}</td></tr>"
