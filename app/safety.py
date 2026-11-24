@@ -151,7 +151,7 @@ def run_all(write: bool = True) -> list[dict]:
         return None
     res = run(h_override, "silent-override")
     rec("Malfunction", "Wrong action: the ACIO silently changes the allocation with no recorded reason",
-        "validate_allocation_authority refuses it; after one repair attempt the run escalates to the human CIO with no decision written",
+        "validate_allocation_authority refuses it; after two repair attempts (final stage) the run stops to the human CIO with no decision written",
         res["status"] == "RUN_STOPPED", res["stop"])
 
     def h_noresp(llm, agent, msgs, tools):

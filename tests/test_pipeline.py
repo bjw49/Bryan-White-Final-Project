@@ -310,5 +310,33 @@ check("one agent per call fits under the cap", len(tool_content({"evidence_id": 
 _big = json.loads(tool_content({"evidence_id": "E2", "tool": "get_returns", "result": "x" * 30000}))
 check("an over-cap tool result is marked truncated, as valid JSON", _big["truncated"] is True and "Do not treat it as complete" in _big["note"])
 
+# 20. live batch 5: the ACIO's repair capped every US IG manager, leaving no room for the class weight, and the run
+# stopped. The error now says how to fix it (leave a manager uncapped, or lower the class), and the final decision gets two repairs.
+from app.orchestrator import _lineup, Stop as _Stop
+_heads = {"US_IG": {"selected": [{"manager_id": "IG01", "weight_pct": 60}, {"manager_id": "IG02", "weight_pct": 40}]}}
+try:
+    _lineup({"US_IG": 30, "CASH": 70}, _heads, {"IG01": ("CAP", 30.0, "O1"), "IG02": ("CAP", 20.0, "O2")}); _msg = ""
+except _Stop as x:
+    _msg = x.detail
+check("no-room error says to leave a manager uncapped or lower the class", "can hold only 50% of it" in _msg
+      and "Leave at least one US_IG manager uncapped" in _msg and "lower US_IG's weight below 30%" in _msg)
+_ig = [p for p in _happy["manager_portfolio"] if p["class"] == "US_IG"]
+
+def _allcap(llm, agent, msgs, tools):
+    if agent == "acio" and _phase(msgs) == "final" and _tool_msgs(msgs):
+        nrep = sum(1 for m in msgs if m.get("role") == "user" and "failed validation" in str(m.get("content", "")))
+        def f(d):
+            caps = [{"manager_id": p["manager_id"], "change": "CAP", "max_weight_in_class_pct": round(p["weight_in_class_pct"] / 2, 2)} for p in _ig]
+            d["red_team_responses"] = [{"objection_id": "O1", "response": "PARTLY_ACCEPTED", "action": "cap every IG manager",
+                                        "evidence": ["E1"], "manager_changes": caps}]
+            if nrep < 2:  # the first answer and the first repair repeat the mistake; the second repair follows the message
+                return
+            d["red_team_responses"][0]["manager_changes"] = caps[:1]  # one manager capped, the others take the freed weight
+        return edit(llm, agent, msgs, tools, f)
+    return None
+res, out = run(_allcap, "cover-allcap")
+check("the final decision gets a second repair, and a correct second repair completes the run",
+      res["status"] == "RECOMMEND_WITH_CONDITIONS" and any("repaired (2 of 2)" in f for f in res["flags"]))
+
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

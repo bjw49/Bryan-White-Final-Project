@@ -221,7 +221,7 @@ def diagram(dark: bool = False) -> str:
     s.append(arrow(490, 402, 490, 438, amb))
     s.append(node(700, 470, 230, 62, "Human CIO", "memo, dashboard, audit trail", mute, "approves or sends back"))
     s.append(arrow(590, 480, 698, 498, mute))
-    s.append(node(30, 440, 300, 80, "Run stopped", "budget hit, invalid output after one repair,", red, "or a broken rule: no decision, reason shown"))
+    s.append(node(30, 440, 300, 80, "Run stopped", "budget hit, invalid output after repair,", red, "or a broken rule: no decision, reason shown"))
     s.append(arrow(390, 471, 332, 478, red, "stroke-dasharray='4 3'"))
     s.append("</svg>")
     return "".join(s)
@@ -259,12 +259,13 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "This affected every earlier batch: the Red Team saw the AAR in full but only part of the Heads' proposals. Fixed: "
      "read_proposals pages by size and names what it left out, the Red Team reads one proposal per call, and any over-cap "
      "result is marked truncated instead of cut silently."),
-    ("evidence_summary.md", "Batch 5 (submitted code)",
+    ("evidence_summary.md", "Batch 5",
      "The measured evidence in Sections 4 and 6. The Red Team read every proposal in full, one per call, in every run. "
      "One run stopped: after the coverage check sent its answer back, the ACIO's repair capped every manager in US "
      "investment grade, leaving no manager to take the freed weight; the right repair was a lower class weight. The code "
-     "stopped it rather than invent an allocation. Left as a known limit: a second repair round, or letting code scale "
-     "the class down, would fix it."),
+     "stopped it rather than invent an allocation. Fixed afterwards (not in these runs): caps are a share of the class, so "
+     "the error now says to leave one manager uncapped or lower the class weight, and the ACIO's final decision gets a second "
+     "repair, because fixing one final-stage rule can trip another. Tested with the scripted model only."),
 ]
 
 
@@ -502,7 +503,7 @@ def build_report(ctx: dict) -> str:
                "<li><b>Governance enforced in code, not requested in a prompt.</b> The ACIO may override the allocator only with a recorded reason and evidence; "
                "every Red Team objection needs a recorded answer, and an accepted objection cannot end with more money in the manager or class it targets "
                "(the ACIO caps or removes the manager instead); the owner-type guardrails hold unless a waiver names the class and the owner statement behind it. "
-               "An invalid output gets one repair; then the run stops and shows the human CIO why, with no decision written.</li>"
+               "An invalid output gets one repair (the ACIO's final decision two, because its checks interact); then the run stops and shows the human CIO why, with no decision written.</li>"
                "<li><b>Decision labels by who must act.</b> RECOMMEND, RECOMMEND_WITH_CONDITIONS (diligence the CIO and managers can clear), NEEDS_OWNER_INPUT "
                "(only for a policy fact only the owner can give) and DO_NOT_RECOMMEND. Before the run, the ACIO asks the owner up to three clarifying questions "
                "when the description leaves a policy fact open.</li>"
@@ -592,7 +593,7 @@ def build_report(ctx: dict) -> str:
     out.append("<h2>4. Tokenomics</h2>")
     if have_tok:
         out.append(f"<p>Measured on the final batch of <b>{tok['n_runs']} live runs</b> of {e(tok['model'])} ({tok['n_completed']} reached a decision; averages use those), "
-                   f"run on the submitted code. The {tok.get('n_all_live_runs', tok['n_runs']) - tok['n_runs']} earlier development runs (Section 3) are excluded because the code changed after them. "
+                   f"run on the submitted code apart from one later change that acts only when the ACIO's final decision fails a check (a second repair; Section 3, batch 5). The {tok.get('n_all_live_runs', tok['n_runs']) - tok['n_runs']} earlier development runs (Section 3) are excluded because the code changed after them. "
                    f"Token counts are what the gateway reported per call (prompt, cached prompt, completion), recorded in each run's <code>telemetry.json</code>. "
                    f"Prices: {e(tok['price_source'])}.</p>")
         out.append("<div class='kpis'>" +
@@ -778,7 +779,7 @@ def build_slides(ctx: dict) -> str:
     S.append("<section><h2>Built with the course stack</h2><table><tr><th>Layer</th><th>What it does here</th></tr>"
              "<tr><td>React + Vite + TypeScript</td><td>Chat with the ACIO, clarifying questions, live agent wire, decision and memo view</td></tr>"
              "<tr><td>FastAPI</td><td>Policy, clarify, run and job routes; access code; one run at a time when hosted</td></tr>"
-             "<tr><td>PydanticAI + Pydantic</td><td>Agent loop with budgets checked before every model call; every output validated against a contract, one repair</td></tr>"
+             "<tr><td>PydanticAI + Pydantic</td><td>Agent loop with budgets checked before every model call; every output validated against a contract and sent back with the errors</td></tr>"
              "<tr><td>OpenAI Responses API</td><td>gpt-6-luna; automatic prompt caching (beat the explicit breakpoint, 58% vs 23% cached)</td></tr>"
              "<tr><td>Render</td><td>Same app, one web service from render.yaml</td></tr></table></section>")
     S.append(f"<section><h2>Seven agents, one committee</h2>{diagram(True)}</section>")
@@ -821,7 +822,7 @@ def build_slides(ctx: dict) -> str:
         S.append("<section><h2>The Red Team, enforced</h2><ul>"
                  f"<li>Batch 2: in <b>{nb} of {len(b2)}</b> runs the ACIO accepted a major objection about a manager, then gave that manager <b>more</b> money</li>"
                  "<li>Cause: the ACIO had no way to resize a manager, so an accepted objection could only become text</li>"
-                 "<li>Fix in code: the ACIO caps or removes managers; an accepted objection cannot end with more money in its target; one repair, then the run stops</li>"
+                 "<li>Fix in code: the ACIO caps or removes managers; an accepted objection cannot end with more money in its target; sent back with the exact fix, then the run stops</li>"
                  "<li>Lesson: a prompt asking for governance is not governance; the rule has to be checked</li></ul></section>")
     base_h = (pilot.get("pilot") or {}).get("baseline_hours")
     imp = []

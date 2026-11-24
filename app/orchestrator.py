@@ -3,7 +3,7 @@
 
 Rules this module enforces in code (the model never has the last word on these):
   * every output is validated against its contract (contracts/schemas.py) before it is published or used;
-  * one repair attempt per output on validation failure, then the run ESCALATES (no invalid decision is ever written);
+  * one repair attempt per output on validation failure (two for the ACIO's final decision), then the run STOPS (no invalid decision is ever written);
   * the manager portfolio is computed from the Heads' validated selections x the ACIO's class weights, never copied;
   * findings whose evidence ids do not exist in this run are dropped;
   * a class with weight but no selected managers stops the run;
@@ -47,6 +47,7 @@ AGENT_STEPS = 4
 # 2026-11-23 showed Heads making one call per turn and running out before reading any manager document. Configurable.
 HEAD_STEPS = int(os.environ.get("AII_HEAD_STEPS", "7"))
 ACIO_STEPS = 6
+FINAL_REPAIRS = 2  # the ACIO's final decision may be sent back twice; every other output once
 MAX_WORKERS = 5
 # Time budget (owner requirement: a run finishes within 10 minutes). Checked before every model call.
 # Follow-ups stop at the soft limit so there is time left for the Red Team and the final decision.
@@ -309,10 +310,10 @@ def _errors(model_cls, obj: dict) -> list[str]:
         return [f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()][:8]
 
 
-def _ask(ctx: Ctx, agent: str, msgs: list, specs: list, extra: dict, steps: int, check, label: str) -> dict:
-    """Run the loop, validate, repair once on failure, then escalate."""
+def _ask(ctx: Ctx, agent: str, msgs: list, specs: list, extra: dict, steps: int, check, label: str, repairs: int = 1) -> dict:
+    """Run the loop, validate, repair on failure (once by default), then stop the run."""
     text = _loop(ctx, agent, msgs, specs, extra, steps)
-    for attempt in (1, 2):
+    for attempt in range(1, repairs + 2):
         try:
             obj = _json_obj(text, lambda n: ctx.flag(f"{agent}: ignored {n} characters of stray text after its JSON answer"))
             _clean_findings(ctx, obj, agent)
@@ -321,9 +322,9 @@ def _ask(ctx: Ctx, agent: str, msgs: list, specs: list, extra: dict, steps: int,
             obj, errs = None, [str(e)]
         if not errs:
             return obj
-        if attempt == 2:
+        if attempt == repairs + 1:
             raise Stop(label, "; ".join(errs)[:900])
-        ctx.flag(f"{agent}: output repaired once ({errs[0][:140]})")
+        ctx.flag(f"{agent}: output repaired " + ("once" if repairs == 1 else f"({attempt} of {repairs})") + f" ({errs[0][:140]})")
         msgs.append({"role": "assistant", "content": text})
         msgs.append({"role": "user", "content": "Your JSON failed validation: " + "; ".join(errs)[:900] +
                      ". Return the corrected JSON object only, with the same evidence ids."})
@@ -517,8 +518,13 @@ def _lineup(final_w: dict, heads: dict, changes: dict | None = None) -> list[dic
         if freed > 1e-9:
             base = sum(new[i] for i in free)
             if base <= 0:
-                raise Stop("manager_change_no_room", f"the caps and removals in {cls} leave no unchanged manager to take the "
-                                                     f"freed {freed:g}% of the class: cap less, or give {cls} less weight")
+                held = sum(new.values())
+                raise Stop("manager_change_no_room",
+                           f"every manager in {cls} is capped or removed: caps are a share of the class, so together its managers "
+                           f"can hold only {held:g}% of it and no manager is left to take the other {freed:g}%, at any class "
+                           f"weight. Leave at least one {cls} manager uncapped (it takes the freed weight). To hold less of "
+                           f"{cls}'s managers overall, lower {cls}'s weight below {w:g}% instead: every {cls} manager's share "
+                           f"of the portfolio falls with it")
             for i in free:
                 new[i] += freed * new[i] / base
         for m, _ in ms:
@@ -697,7 +703,10 @@ def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: 
             errs += guardrail_errors(ctx, policy, o)
         return errs
     extra_specs = gateway_tools(ctx.gw("acio"))
-    obj = _ask(ctx, "acio", msgs, extra_specs, {}, ACIO_STEPS, check, "final")
+    # Two repairs at the final stage only: its checks interact (fixing a Red Team coverage breach by capping managers can
+    # leave a class with no room), it is the most expensive stage to lose, and each error message states the exact fix.
+    # Live batch 5: the first repair capped every US IG manager and the run stopped on the next check.
+    obj = _ask(ctx, "acio", msgs, extra_specs, {}, ACIO_STEPS, check, "final", repairs=FINAL_REPAIRS)
     _publish(ctx, "acio", obj, "final decision")
     return obj
 
