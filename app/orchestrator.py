@@ -485,8 +485,68 @@ def _class_manager_ids(ctx: Ctx, cls: str) -> set:
     return ids
 
 
+def reconcile_head_lists(o: dict) -> list[str]:
+    """Bookkeeping repairs on a Head's proposal, done by code before the contract check. Live batch 8: Heads ranked every
+    manager correctly but listed one twice, or left one off not_selected, and one run stopped after the repair repeated it.
+    Only the lists are tidied; the judgment (the ranking order, the selection and its weights) is never changed:
+      * a manager listed twice in a list keeps its first entry;
+      * a selected manager is removed from not_selected;
+      * a ranked manager in neither list is added to not_selected, pointing to its ranking rationale;
+      * ranks are renumbered 1..N in their existing order if they have ties or gaps.
+    Anything else (a selected manager not ranked, weights not summing to 100, a missing class manager) still fails."""
+    if not isinstance(o, dict):
+        return []
+    done = []
+
+    def dedupe(key):
+        rows, seen, out = o.get(key) or [], set(), []
+        for r in rows:
+            mid = r.get("manager_id") if isinstance(r, dict) else None
+            if mid in seen:
+                continue
+            seen.add(mid); out.append(r)
+        if len(out) < len(rows):
+            done.append(f"removed {len(rows) - len(out)} duplicate(s) from {key}")
+            o[key] = out
+    for key in ("selected", "not_selected", "ranking"):
+        if isinstance(o.get(key), list):
+            dedupe(key)
+    sel = {r.get("manager_id") for r in o.get("selected") or [] if isinstance(r, dict)}
+    ns = o.get("not_selected") or []
+    if isinstance(ns, list):
+        keep = [r for r in ns if not (isinstance(r, dict) and r.get("manager_id") in sel)]
+        if len(keep) < len(ns):
+            done.append(f"removed {len(ns) - len(keep)} selected manager(s) from not_selected")
+            o["not_selected"] = ns = keep
+    rk = o.get("ranking")
+    if isinstance(rk, list) and all(isinstance(r, dict) for r in rk):
+        try:
+            ranks = [int(r.get("rank")) for r in rk]
+        except (TypeError, ValueError):
+            ranks = None
+        if ranks is not None and sorted(ranks) != list(range(1, len(rk) + 1)):
+            order = sorted(range(len(rk)), key=lambda i: (ranks[i], i))
+            for n, i in enumerate(order, 1):
+                rk[i]["rank"] = n
+            done.append("renumbered ranks 1..N in their existing order")
+        listed = sel | {r.get("manager_id") for r in ns if isinstance(r, dict)}
+        missing = [r.get("manager_id") for r in sorted(rk, key=lambda r: r.get("rank", 0)) if r.get("manager_id") not in listed]
+        if missing and isinstance(ns, list):
+            for mid in missing:
+                ns.append({"manager_id": mid, "why_considered": "ranked by the Head",
+                           "why_not_selected": "not selected; see this manager's ranking rationale"})
+            o["not_selected"] = ns
+            done.append(f"added ranked manager(s) {missing} to not_selected")
+    return done
+
+
 def _head_check(ctx: Ctx, cls: str, model_cls):
+    agent = HEADS[cls]
+
     def check(o):
+        fixed = reconcile_head_lists(o)
+        if fixed:
+            ctx.flag(f"{agent}: code reconciled its manager lists ({'; '.join(fixed)})")
         errs = _errors(model_cls, o)
         if not errs:
             want = _class_manager_ids(ctx, cls)
@@ -661,6 +721,9 @@ def _ask_agent(ctx: Ctx, args: dict) -> dict:
     revised = False
     rp = obj.get("revised_proposal")
     if rp:
+        fixed = reconcile_head_lists(rp) if agent in HEADS.values() else []
+        if fixed:
+            ctx.flag(f"{agent}: code reconciled its revised manager lists ({'; '.join(fixed)})")
         errs = _errors(CONTRACTS[agent], rp)
         if errs:
             ctx.flag(f"{agent}: revised proposal refused ({errs[0][:120]})")

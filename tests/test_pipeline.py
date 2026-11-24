@@ -405,5 +405,41 @@ except Exception as x:
     _m = getattr(x, "detail", str(x))
 check("when only doubted managers remain, the error says to cap them too or lower the class", "cannot go to ['UE02']" in _m and "lower US_EQ's weight" in _m)
 
+# 24. live batch 8: Heads ranked every manager but listed one twice or left one off not_selected; a run stopped. Code now
+# reconciles the lists (never the ranking order, the selection or the weights) before the contract check.
+import copy
+from app.orchestrator import reconcile_head_lists
+_good = head_output(_ids, [], 3)
+_bad = copy.deepcopy(_good)
+_bad["not_selected"].append(copy.deepcopy(_bad["not_selected"][0]))                     # listed twice
+_bad["not_selected"].append({"manager_id": _bad["selected"][0]["manager_id"], "why_considered": "x", "why_not_selected": "y"})  # selected and not
+_gone = _bad["not_selected"].pop(1)["manager_id"]                                            # ranked but in neither list
+_bad["ranking"][4]["rank"] = _bad["ranking"][3]["rank"]                                      # a tie
+check("the messy lists fail the contract as they are", _err(copy.deepcopy(_bad)) != "")
+_fx = reconcile_head_lists(_bad)
+check("code reconciles duplicates, overlap, a missing manager and tied ranks", _err(_bad) == "" and len(_fx) == 4
+      and any(r["manager_id"] == _gone for r in _bad["not_selected"]))
+check("the selection and weights are untouched", [(m["manager_id"], m["weight_pct"]) for m in _bad["selected"]]
+      == [(m["manager_id"], m["weight_pct"]) for m in _good["selected"]])
+check("the ranking order is untouched", [r["manager_id"] for r in sorted(_bad["ranking"], key=lambda r: r["rank"])]
+      == [r["manager_id"] for r in _good["ranking"]])
+_w = copy.deepcopy(_good); _w["selected"][0]["weight_pct"] = 30; reconcile_head_lists(_w)
+check("weights that do not sum to 100 still fail", "sum to 100" in _err(_w))
+_u = copy.deepcopy(_good); _u["ranking"] = [r for r in _u["ranking"] if r["manager_id"] != _u["selected"][0]["manager_id"]]
+for _n, _r in enumerate(_u["ranking"], 1):
+    _r["rank"] = _n
+reconcile_head_lists(_u)
+check("a selected manager missing from the ranking still fails", "ranking must cover" in _err(_u))
+def _dup(llm, agent, msgs, tools):
+    if agent == "head_us_ig" and _phase(msgs) == "select" and _tool_msgs(msgs):
+        def f(d):
+            d["not_selected"].append(copy.deepcopy(d["not_selected"][0]))
+            d["not_selected"].pop(1)
+        return edit(llm, agent, msgs, tools, f)
+    return None
+res, out = run(_dup, "reconcile")
+check("a Head's list slips no longer stop the run, and the reconciliation is flagged", res["status"] == "RECOMMEND_WITH_CONDITIONS"
+      and any("head_us_ig: code reconciled" in f for f in res["flags"]) and not any("head_us_ig: output repaired" in f for f in res["flags"]))
+
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

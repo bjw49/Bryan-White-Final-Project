@@ -239,7 +239,8 @@ def SUBMITTED_NOTE() -> str:
         return (" apart from one later fix that acts only when the ACIO caps a manager (freed weight no longer goes to "
                 "another doubted manager; Section 3, batch 7)")
     if cur and cur not in (b6, b7):
-        return ""
+        return (" apart from one later fix that acts only when a Head's manager lists are inconsistent (code reconciles them; "
+                "Section 3, batch 8)")
     if b6 and cur == b6:
         return (" apart from later fixes that act only on failures (a deadline on hung agents, a reserve of lineup checks "
                 "past the data budget, a clearer error for a class with no lineup, and a rule that an empty lineup must give an "
@@ -299,12 +300,14 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "the fresh-clone run in Section 6: when one objection named two managers and the ACIO capped one, code moved the freed "
      "weight into the other, which then breached the coverage rule on every repair (in this batch one run needed both repairs "
      "for the same reason, and completed). Freed weight now goes only to managers not named in an objection the ACIO accepted."),
-    ("evidence_summary.md", "Batch 8 (submitted code)",
+    ("evidence_summary.md", "Batch 8",
      "The measured evidence in Sections 4 and 6, on the code as submitted. One run stopped at the start: the US investment-grade "
      "Head's proposal failed its contract twice (its ranking did not list exactly the managers it selected and rejected), so the "
      "run stopped before any allocation. Several Heads needed a repair for listing a manager twice; the repair fixed each. "
-     "Not fixed: Heads' bookkeeping across three long lists (ranking, selected, not selected) is a contract a model can still "
-     "fail, and a cheaper design would have code build the ranking from one list."),
+     "Fixed afterwards (scripted tests only): code reconciles the Heads' lists before the contract check (duplicates removed, a "
+     "selected manager taken out of not selected, a ranked manager missing from both lists added to not selected, tied ranks "
+     "renumbered in order) and flags it; the ranking order, the selection and the weights are never changed, and a real gap, "
+     "such as a selected manager missing from the ranking, still fails."),
 ]
 
 
