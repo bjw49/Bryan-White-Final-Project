@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 import os
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")  # keep the console to the run log
@@ -163,8 +162,8 @@ def run_loop(ctx, agent: str, msgs: list, specs: list, extra: dict, steps: int) 
     try:
         # Delegation (the ACIO asking a Head a follow-up) starts an agent run from inside another agent's tool.
         # Each run gets its own thread and event loop, and the caller waits for the result (lecture 10, async delegation).
-        with ThreadPoolExecutor(max_workers=1) as ex:
-            res = ex.submit(go).result()
+        from app.orchestrator import run_with_deadline
+        res = run_with_deadline(r.ctx, {agent: go})[agent]
     except UsageLimitExceeded:
         raise Stop(agent, f"exceeded {steps} steps without a final answer")
     return res.output or ""

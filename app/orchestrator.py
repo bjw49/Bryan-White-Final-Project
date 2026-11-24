@@ -22,7 +22,6 @@ import sqlite3
 import sys
 import threading
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -440,13 +439,41 @@ def _run_aar(ctx: Ctx, policy: dict) -> dict:
     return obj
 
 
+HANG_GRACE_S = 60  # how long past the time budget to wait for a busy agent before stopping the run
+
+
+def run_with_deadline(ctx: Ctx, jobs: dict) -> dict:
+    """Run {name: fn} in daemon threads and wait no longer than the run's time budget (plus a grace period).
+    The budget is checked before every model call, but a call that never returns was never re-checked: in live batch 6
+    a run waited 16 minutes on agents that had stopped responding. A thread still busy at the deadline stops the run
+    (it is a daemon, so it cannot keep the process alive); the first agent error is re-raised as before."""
+    results, errors = {}, {}
+
+    def wrap(k, fn):
+        try:
+            results[k] = fn()
+        except BaseException as e:  # noqa: BLE001 - re-raised in the caller's thread
+            errors[k] = e
+    threads = {k: threading.Thread(target=wrap, args=(k, fn), daemon=True, name=f"aii-{k}") for k, fn in jobs.items()}
+    for t in threads.values():
+        t.start()
+    for k, t in threads.items():
+        t.join(max(1.0, TIME_BUDGET_S + HANG_GRACE_S - ctx.elapsed()))
+        if t.is_alive():
+            raise Stop(k, f"did not finish within the {TIME_BUDGET_S:.0f}s time budget (a model or tool call stopped "
+                          "responding); the run is stopped with no decision")
+    for k in jobs:
+        if k in errors:
+            raise errors[k]
+    return results
+
+
 def stage_parallel(ctx: Ctx, policy: dict) -> dict:
     """AAR and the four Heads run concurrently. Each sees only its own scope."""
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-        futs = {"aar": ex.submit(_run_aar, ctx, policy)}
-        for cls, agent in HEADS.items():
-            futs[agent] = ex.submit(_run_head, ctx, policy, cls, agent)
-        return {k: f.result() for k, f in futs.items()}
+    jobs = {"aar": lambda: _run_aar(ctx, policy)}
+    for cls, agent in HEADS.items():
+        jobs[agent] = (lambda c=cls, a=agent: _run_head(ctx, policy, c, a))
+    return run_with_deadline(ctx, jobs)
 
 
 def _class_manager_ids(ctx: Ctx, cls: str) -> set:

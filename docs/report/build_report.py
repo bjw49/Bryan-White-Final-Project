@@ -276,7 +276,11 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "stopped it rather than invent an allocation. Fixed afterwards (not in these runs): caps are a share of the class, so "
      "the error now says to leave one manager uncapped or lower the class weight, and the ACIO's final decision gets a second "
      "repair, because fixing one final-stage rule can trip another."),
-    ("evidence_summary.md", "Batch 6 (submitted code)", "The measured evidence in Sections 4 and 6, on the code as submitted."),
+    ("evidence_summary.md", "Batch 6 (submitted code)",
+     "The measured evidence in Sections 4 and 6, on the code as submitted. A first attempt at this batch hung: in its third run "
+     "the Heads stopped responding after a tool call and the run waited 16 minutes, because the time budget was checked only "
+     "before each model call, never while waiting for one. Fixed: agents run in threads with a deadline of the time budget "
+     "plus 60 seconds, after which the run stops with the reason shown; the cause of the hang itself was not found."),
 ]
 
 

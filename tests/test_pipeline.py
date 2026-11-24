@@ -338,5 +338,22 @@ res, out = run(_allcap, "cover-allcap")
 check("the final decision gets a second repair, and a correct second repair completes the run",
       res["status"] == "RECOMMEND_WITH_CONDITIONS" and any("repaired (2 of 2)" in f for f in res["flags"]))
 
+# 21. live batch 6: a run waited 16 minutes on Heads that had stopped responding; the time budget was only checked
+# before each model call. A hung agent now stops the run at the budget plus a grace period.
+import time as _tm
+import app.orchestrator as _orch
+_tb, _hg = _orch.TIME_BUDGET_S, _orch.HANG_GRACE_S
+_orch.TIME_BUDGET_S, _orch.HANG_GRACE_S = 2, 0
+def _hang(llm, agent, msgs, tools):
+    if agent == "head_us_hy":
+        _tm.sleep(8)
+    return None
+_t0 = _tm.monotonic()
+res, out = run(_hang, "hang")
+_dt = _tm.monotonic() - _t0
+_orch.TIME_BUDGET_S, _orch.HANG_GRACE_S = _tb, _hg
+check("a hung agent stops the run at the time budget instead of waiting for it", res["status"] == "RUN_STOPPED"
+      and "stopped responding" in res["stop"]["detail"] and _dt < 6)
+
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)
