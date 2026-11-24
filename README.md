@@ -12,11 +12,14 @@ Decision support for a human CIO. Not investment advice.
 
 Needs Python 3.10 or newer.
 
-1. **Key.** Put a `.env` file containing `PORTKEY_API_KEY=...` in the folder **above** this repo (or in this folder).
+1. **Key.** Put a `.env` file containing `OPENAI_API_KEY=...` (an OpenAI key) or `PORTKEY_API_KEY=...` (the course gateway) in the folder **above** this repo (or in this folder).
    The app checks this folder first, then the folder above, then each folder further up until it finds one. `.env.example` lists the names. Never commit `.env`.
-2. **Install** (from inside this folder):
+2. **Install** (from inside this folder; a virtual environment is recommended):
 
+       python -m venv .venv
+       .venv\Scripts\activate          (Windows; macOS/Linux: source .venv/bin/activate)
        python -m pip install -r requirements.txt
+       python tests/run_all.py          (optional check: all tests, scripted model, no key, about 10 seconds)
 
    On macOS/Linux use `python3` if `python` is not Python 3.
 3. **Start the app:**
@@ -28,12 +31,13 @@ Needs Python 3.10 or newer.
    FastAPI back end, so you need Python only. Interactive API docs are at http://127.0.0.1:8765/docs.
 4. **Use it.** Click one of the three examples (university endowment, corporate DB pension, private foundation) or type
    your own owner description and press **Send to ACIO**. The ACIO shows the policy it inferred, then the committee runs.
-   The live panel shows the clock, tokens, cost and each agent-to-agent message. A run takes several minutes and is held
-   under 10 minutes by a time budget.
-5. **Results.** When the run ends, click **Open this run on the dashboard**: decision, allocation (proposed vs final),
-   manager lineup, Red Team objections and the ACIO's answers, stage timeline, tokens and cost by agent, and the memo.
-   The asset-class pages show selected managers, next-best managers and the full ranking with statistics.
-   **Tokenomics** and **Safety** are linked at the top of every page.
+   If something important is missing it asks up to three questions first. The live panel shows the clock, tokens, cost
+   and each agent-to-agent message. A run takes about 2 to 3 minutes; a 420-second time budget stops it otherwise.
+5. **Results.** When the run ends, the decision opens below the panel: label, open items for the human CIO, allocation
+   (proposed vs final), manager lineup, Red Team objections with the ACIO's answers, and the memo. The **Runs & Memos**
+   tab keeps every run, with a full run page (stage timeline, tokens and cost by agent, the agent message log) and the
+   asset-class pages (selected managers, next-best managers, full ranking with statistics). **Tokenomics** and
+   **Safety** are tabs at the top.
 
 No key? `python -m app.server --mock` runs the same pipeline with a scripted stand-in model in about a second. It tests the
 wiring, tools and safety controls, not the judgment, and uses no tokens.
