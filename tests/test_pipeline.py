@@ -378,5 +378,32 @@ for _ in range(61):
     _gw.call("get_manager_card", manager_id="UE01")
 check("an empty lineup from a Head that ran out of data calls is sent back", any("ran out of data calls" in x for x in _hk(json.loads(json.dumps(_empty)))))
 
+# 23. fresh-clone run: one objection named IG07 and IG09; capping IG07 pushed its freed weight into IG09, which then
+# breached the coverage rule. Freed weight now goes only to managers not named in an accepted objection.
+_eq = [p for p in _happy["manager_portfolio"] if p["class"] == "US_EQ"]
+_a, _b, _c = _eq[0]["manager_id"], _eq[1]["manager_id"], _eq[2]["manager_id"]
+def _two(llm, agent, msgs, tools):
+    ph = _phase(msgs)
+    if agent == "red_team" and ph == "challenge" and _tool_msgs(msgs):
+        return edit(llm, agent, msgs, tools, lambda d: d["objections"][0].update(target=f"US_EQ / {_a} and {_b}"))
+    if agent == "acio" and ph == "final" and _tool_msgs(msgs):
+        def f(d):
+            d["red_team_responses"] = [{"objection_id": "O1", "response": "PARTLY_ACCEPTED", "action": "cap the first", "evidence": ["E1"],
+                                        "manager_changes": [{"manager_id": _a, "change": "CAP", "max_weight_in_class_pct": round(_eq[0]["weight_in_class_pct"] / 2, 2)}]}]
+        return edit(llm, agent, msgs, tools, f)
+    return None
+res, out = run(_two, "cover-two")
+_d2 = {p["manager_id"]: p for p in (read(out / "decision.json") or {}).get("manager_portfolio", [])}
+check("capping one doubted manager does not push weight into another doubted manager", res["status"] == "RECOMMEND_WITH_CONDITIONS"
+      and abs(_d2[_b]["weight_in_class_pct"] - _eq[1]["weight_in_class_pct"]) < 0.01 and _d2[_c]["weight_in_class_pct"] > _eq[2]["weight_in_class_pct"]
+      and not any("repaired" in f for f in res["flags"]))
+from app.orchestrator import _lineup as _lu
+try:
+    _lu({"US_EQ": 40, "CASH": 60}, {"US_EQ": {"selected": [{"manager_id": "UE01", "weight_pct": 50}, {"manager_id": "UE02", "weight_pct": 50}]}},
+        {"UE01": ("CAP", 20.0, "O1")}, {"UE01", "UE02"}); _m = ""
+except Exception as x:
+    _m = getattr(x, "detail", str(x))
+check("when only doubted managers remain, the error says to cap them too or lower the class", "cannot go to ['UE02']" in _m and "lower US_EQ's weight" in _m)
+
 print("\n", "ALL PASS" if fails == 0 else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

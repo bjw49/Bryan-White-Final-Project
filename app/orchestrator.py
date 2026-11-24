@@ -524,10 +524,21 @@ def _manager_changes(responses) -> dict:
     return out
 
 
-def _lineup(final_w: dict, heads: dict, changes: dict | None = None) -> list[dict]:
+def _doubted(rt: dict, responses) -> set:
+    """Managers named in the target of a MAJOR or CRITICAL objection the ACIO accepted or partly accepted."""
+    import re as _re
+    acc = {r.get("objection_id") for r in responses or [] if isinstance(r, dict) and r.get("response") in ("ACCEPTED", "PARTLY_ACCEPTED")}
+    return {m for o in (rt or {}).get("objections", []) if o.get("id") in acc and o.get("severity") in ("MAJOR", "CRITICAL")
+            for m in _re.findall(r"\b(?:UE|IE|IG|HY)\d{2}\b", str(o.get("target", "")))}
+
+
+def _lineup(final_w: dict, heads: dict, changes: dict | None = None, doubted: set | None = None) -> list[dict]:
     """Manager portfolio built by code: class weight x the Head's in-class weight. changes (from the ACIO's Red Team
-    responses) REMOVE or CAP a manager; the freed in-class weight goes pro rata to the class's unchanged managers."""
+    responses) REMOVE or CAP a manager; the freed in-class weight goes pro rata to the class's unchanged managers that are
+    not doubted (named in an objection the ACIO accepted). Fresh-clone run, 23 Nov: capping IG07 pushed its weight into
+    IG09, named in the same objection, so each repair breached the coverage rule on the next manager."""
     changes = dict(changes or {})
+    doubted = set(doubted or ())
     known = {m["manager_id"]: cls for cls, h in heads.items() for m in (h or {}).get("selected", [])}
     unknown = [m for m in changes if m not in known]
     if unknown:
@@ -548,9 +559,16 @@ def _lineup(final_w: dict, heads: dict, changes: dict | None = None) -> list[dic
             ch = changes.get(m["manager_id"])
             y = x if not ch else (0.0 if ch[0] == "REMOVE" else min(x, ch[1]))
             new[m["manager_id"]], freed = y, freed + (x - y)
-        free = [m["manager_id"] for m, _ in ms if m["manager_id"] not in changes]
+        free = [m["manager_id"] for m, _ in ms if m["manager_id"] not in changes and m["manager_id"] not in doubted]
         if freed > 1e-9:
             base = sum(new[i] for i in free)
+            left = sorted(m["manager_id"] for m, _ in ms if m["manager_id"] not in changes and m["manager_id"] in doubted)
+            if base <= 0 and left:
+                raise Stop("manager_change_no_room",
+                           f"the weight freed in {cls} cannot go to {left}: they are named in objections you accepted, so they "
+                           f"may not grow. Cap or remove them too and leave at least one {cls} manager that is not in doubt "
+                           f"uncapped, or keep the caps smaller; or lower {cls}'s weight instead of capping, which shrinks every "
+                           f"{cls} manager's share of the portfolio")
             if base <= 0:
                 held = sum(new.values())
                 raise Stop("manager_change_no_room",
@@ -707,7 +725,8 @@ def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: 
              "Code checks each MAJOR or CRITICAL objection you accept or partly accept: a manager named in its target may not end "
              "with a larger share of the total portfolio than in the reviewed mix, and a class named in its target may not end heavier. "
              "To act on a manager, add to that response manager_changes: [{\"manager_id\": \"UE04\", \"change\": \"CAP\", "
-             "\"max_weight_in_class_pct\": 15}] or {\"change\": \"REMOVE\"}; code moves the freed weight to the class's other managers. "
+             "\"max_weight_in_class_pct\": 15}] or {\"change\": \"REMOVE\"}; code moves the freed weight to the class's other managers "
+             "that are not named in an objection you accepted. "
              "REJECTING a MAJOR or CRITICAL objection needs evidence. "
              "Do not write manager_portfolio: code builds it. Return the ACIODecision JSON."}]
 
@@ -723,7 +742,8 @@ def stage_final(ctx: Ctx, policy: dict, aar: dict, heads: dict, prov: dict, rt: 
         errs += _weights_errors(w)
         if not errs:
             try:
-                o["manager_portfolio"] = _lineup(w, heads, _manager_changes(o.get("red_team_responses")))
+                o["manager_portfolio"] = _lineup(w, heads, _manager_changes(o.get("red_team_responses")),
+                                                 _doubted(rt, o.get("red_team_responses")))
             except Stop as s:
                 errs.append(s.detail)
         if errs:  # no lineup: schema errors on the empty portfolio would only bury the real cause

@@ -234,6 +234,9 @@ def SUBMITTED_NOTE() -> str:
     """Batch 5 ran before the last change (a second repair for the final decision); a later batch runs the submitted code."""
     b6 = {r["run_id"] for r in batch_rows("evidence_summary_batch6.md")}
     cur = {r["run_id"] for r in batch_rows("evidence_summary.md")}
+    if cur and cur != b6:
+        return (" apart from one later fix that acts only when the ACIO caps a manager (freed weight no longer goes to "
+                "another doubted manager; Section 3, batch 7)")
     if b6 and cur == b6:
         return (" apart from later fixes that act only on failures (a deadline on hung agents, a reserve of lineup checks "
                 "past the data budget, a clearer error for a class with no lineup, and a rule that an empty lineup must give an "
@@ -289,7 +292,10 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "the evidence; a measurement gap must become a proposed lineup with flagged open items, and an empty lineup from a "
      "Head that ran out of data calls is sent back."),
     ("evidence_summary.md", "Batch 7 (submitted code)",
-     "The measured evidence in Sections 4 and 6, on the code as submitted, including the batch 6 fixes."),
+     "The measured evidence in Sections 4 and 6, including the batch 6 fixes. Fixed afterwards (scripted tests only), from "
+     "the fresh-clone run in Section 6: when one objection named two managers and the ACIO capped one, code moved the freed "
+     "weight into the other, which then breached the coverage rule on every repair. Freed weight now goes only to managers "
+     "not named in an objection the ACIO accepted."),
 ]
 
 
@@ -733,7 +739,7 @@ def build_report(ctx: dict) -> str:
                "operational due diligence or legal work, which the app does not do. The manager data are anonymised stand-ins, so the app's picks demonstrate the workflow, not real manager quality.</p>")
     pf = pilot.get("peer_fresh_clone", {})
     if pf.get("who"):
-        out.append(f"<p><b>Fresh-clone test.</b> {e(pf['who'])} cloned the repo and had the app running in {e(pf.get('minutes_to_running'))} minutes following the README. {e(pf.get('notes'))}</p>")
+        out.append(f"<p><b>Fresh-clone test.</b> {e(pf['who'])}. {e(pf.get('notes'))}</p>")
     else:
         out.append(f"<p><b>Fresh-clone test.</b> {todo('peer_fresh_clone in pilot.json: who, minutes to running')}</p>")
 
