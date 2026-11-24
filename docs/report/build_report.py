@@ -229,6 +229,16 @@ def diagram(dark: bool = False) -> str:
 
 RUN_ID = r"run-\d{8}T\d{6}-[0-9a-f]{4}"
 
+
+def SUBMITTED_NOTE() -> str:
+    """Batch 5 ran before the last change (a second repair for the final decision); a later batch runs the submitted code."""
+    b5 = {r["run_id"] for r in batch_rows("evidence_summary_batch5.md")}
+    cur = {r["run_id"] for r in batch_rows("evidence_summary.md")}
+    if b5 and cur == b5:
+        return (" apart from one later change that acts only when the ACIO's final decision fails a check "
+                "(a second repair; Section 3, batch 5)")
+    return ""
+
 BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exposed, the fix before the next batch)
     (None, "Manual live runs of the v3 rewrite (before batch 1)",
      "The ACIO's read_proposals filter matched no rows because agents named each other loosely; the review check compared "
@@ -259,13 +269,14 @@ BATCH_HISTORY = [  # v3 live testing, in order: (saved summary file, what it exp
      "This affected every earlier batch: the Red Team saw the AAR in full but only part of the Heads' proposals. Fixed: "
      "read_proposals pages by size and names what it left out, the Red Team reads one proposal per call, and any over-cap "
      "result is marked truncated instead of cut silently."),
-    ("evidence_summary.md", "Batch 5",
+    ("evidence_summary_batch5.md", "Batch 5",
      "The measured evidence in Sections 4 and 6. The Red Team read every proposal in full, one per call, in every run. "
      "One run stopped: after the coverage check sent its answer back, the ACIO's repair capped every manager in US "
      "investment grade, leaving no manager to take the freed weight; the right repair was a lower class weight. The code "
      "stopped it rather than invent an allocation. Fixed afterwards (not in these runs): caps are a share of the class, so "
      "the error now says to leave one manager uncapped or lower the class weight, and the ACIO's final decision gets a second "
-     "repair, because fixing one final-stage rule can trip another. Tested with the scripted model only."),
+     "repair, because fixing one final-stage rule can trip another."),
+    ("evidence_summary.md", "Batch 6 (submitted code)", "The measured evidence in Sections 4 and 6, on the code as submitted."),
 ]
 
 
@@ -362,7 +373,7 @@ def coverage_html() -> str:
                     f"<b>{e(x['what'])}</b>, then raised from {x['before']:g}% to {x['after']:g}% of the portfolio" for x in br) or "none") + "</td></tr>")
     after = ""
     ids2 = {x["run_id"] for x in b2}
-    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
+    b3 = {r["run_id"]: r for f in ("evidence_summary_batch3.md", "evidence_summary_batch4.md", "evidence_summary_batch5.md", "evidence_summary.md") for r in batch_rows(f) if r["run_id"] not in ids2}
     b3 = list(b3.values())
     if b3:
         bad3 = sum(bool(coverage_breaches(ROOT / "output" / r["run_id"])) for r in b3 if r["status"] != "RUN_STOPPED")
@@ -371,8 +382,8 @@ def coverage_html() -> str:
             d = load(ROOT / "output" / r["run_id"] / "decision.json") or {}
             caps += sum(len(x.get("manager_changes") or []) for x in d.get("red_team_responses", []))
         stopped = sum(r["status"] == "RUN_STOPPED" for r in b3)
-        after = (f"<p><b>After the fix (batches 3 to 5, {len(b3)} runs):</b> {bad3} completed run(s) breach the rule; the ACIO used {caps} manager "
-                 f"cap(s) or removal(s); {stopped} run(s) stopped. A breach is now sent back once with the exact fix, and the run stops if it "
+        after = (f"<p><b>After the fix ({len(b3)} runs in the later batches):</b> {bad3} completed run(s) breach the rule; the ACIO used {caps} manager "
+                 f"cap(s) or removal(s); {stopped} run(s) stopped. A breach is now sent back with the exact fix (up to twice), and the run stops if it "
                  "is not fixed.</p>")
     return ("<h3>The Red Team, enforced</h3><p>A devil's advocate only matters if its accepted objections change the decision. Batch 2 showed "
             f"that they did not always: in <b>{n_bad} of {len(b2)} runs</b> the ACIO accepted or partly accepted a major objection about a "
@@ -387,7 +398,8 @@ def coverage_html() -> str:
 def consistency_html() -> str:
     rows = []
     for fname, name in (("consistency_batch1.json", "Batch 1"), ("consistency_batch2.json", "Batch 2"), ("consistency_batch3.json", "Batch 3"),
-                        ("consistency_batch4.json", "Batch 4"), ("consistency.json", "Batch 5")):
+                        ("consistency_batch4.json", "Batch 4"), ("consistency_batch5.json", "Batch 5"),
+                        ("consistency.json", "Batch 6")):
         c = load(ROOT / "output" / fname)
         if not c or (rows and c.get("runs") == rows[-1][2]) or (c.get("n_with_decision") or 0) < 2:
             continue
@@ -593,7 +605,7 @@ def build_report(ctx: dict) -> str:
     out.append("<h2>4. Tokenomics</h2>")
     if have_tok:
         out.append(f"<p>Measured on the final batch of <b>{tok['n_runs']} live runs</b> of {e(tok['model'])} ({tok['n_completed']} reached a decision; averages use those), "
-                   f"run on the submitted code apart from one later change that acts only when the ACIO's final decision fails a check (a second repair; Section 3, batch 5). The {tok.get('n_all_live_runs', tok['n_runs']) - tok['n_runs']} earlier development runs (Section 3) are excluded because the code changed after them. "
+                   f"run on the submitted code{SUBMITTED_NOTE()}. The {tok.get('n_all_live_runs', tok['n_runs']) - tok['n_runs']} earlier development runs (Section 3) are excluded because the code changed after them. "
                    f"Token counts are what the gateway reported per call (prompt, cached prompt, completion), recorded in each run's <code>telemetry.json</code>. "
                    f"Prices: {e(tok['price_source'])}.</p>")
         out.append("<div class='kpis'>" +
